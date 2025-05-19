@@ -55,8 +55,7 @@ fun "niz" (PARAMS) {
 }
 
 ## Gramatika:
-Program         ::= Expressions
-
+```
 Expressions     ::= Expr Expressions | ε
 
 Expr            ::= Bitwise
@@ -85,17 +84,17 @@ Bitwise'        ::= 'bwand' Additive Bitwise'
                 | ε
 
 Additive        ::= Multiplicative Additive'
-Additive'       ::= 'plus' Multiplicative Additive'
-                | 'minus' Multiplicative Additive'
+Additive'       ::= '+' Multiplicative Additive'
+                | '-' Multiplicative Additive'
                 | ε
 
 Multiplicative  ::= Unary Multiplicative'
-Multiplicative' ::= 'times' Unary Multiplicative'
-                | 'divide' Unary Multiplicative'
+Multiplicative' ::= '*' Unary Multiplicative'
+                | '/' Unary Multiplicative'
                 | ε
 
-Unary           ::= 'plus' Primary
-                | 'minus' Primary
+Unary           ::= '+' Primary
+                | '-' Primary
                 | Primary
 
 Primary         ::= INT
@@ -113,16 +112,16 @@ For             ::= 'for' '(' Assign 'to' Bitwise ')' '{' Expressions '}'
 
 Console         ::= 'console' Bitwise
 
-If              ::= 'if' '(' Comparison ')' '{' Expressions '}' ElsePart
-ElsePart        ::= 'else' '{' Expressions '}' | ε
+If              ::= 'if' '(' Comparison ')' '{' Expressions '}' Else
+Else        ::= 'else' '{' Expressions '}' | ε
 
 Comparison ::= Bitwise Comparison'
 Comparison' ::= '>' Bitwise | '<' Bitwise | '==' Bitwise | '!=' Bitwise | ε
 
 // Tu bo treba handlat scope spremenljik
 Fun             ::= 'fun' STRING '(' Params ')' '{' Expressions '}'
-Params          ::= VARIABLE ParamList | ε
-ParamList       ::= ',' VARIABLE ParamList | ε
+Params          ::= VARIABLE Params' | ε
+Params'      ::= ',' VARIABLE Params' | ε
 
 Block           ::= 'city' STRING '{' Expressions '}'
                 | 'road' STRING '{' Expressions '}'
@@ -144,9 +143,4 @@ TYPE            ::= 'restaurant'
 REAL            ::= [0-9]+ '.' [0-9]+
 STRING          ::= '"' .*? '"'
 VARIABLE        ::= [a-zA-Z_][a-zA-Z0-9_]*~~
-
-
-
-
-
-
+```
