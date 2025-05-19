@@ -84,8 +84,8 @@ Bitwise'        ::= 'bwand' Additive Bitwise'
                 | ε
 
 Additive        ::= Multiplicative Additive'
-Additive'       ::= '+' Multiplicative Additive'
-                | '-' Multiplicative Additive'
+Additive'       ::= 'plus' Multiplicative Additive'
+                | 'minus' Multiplicative Additive'
                 | ε
 
 Multiplicative  ::= Unary Multiplicative'
@@ -121,7 +121,7 @@ Comparison' ::= '>' Bitwise | '<' Bitwise | '==' Bitwise | '!=' Bitwise | ε
 // Tu bo treba handlat scope spremenljik
 Fun             ::= 'fun' STRING '(' Params ')' '{' Expressions '}'
 Params          ::= VARIABLE Params' | ε
-Params'      ::= ',' VARIABLE Params' | ε
+Params'         ::= ',' VARIABLE Params' | ε
 
 Block           ::= 'city' STRING '{' Expressions '}'
                 | 'road' STRING '{' Expressions '}'
