@@ -36,7 +36,15 @@ class Lexer(private val input: String) {
         "road" to TokenType.ROAD,
         "building" to TokenType.BUILDING,
         "location" to TokenType.LOCATION,
-        "restaurant" to TokenType.TYPE
+        "restaurant" to TokenType.TYPE,
+        "park" to TokenType.TYPE,
+        "shop" to TokenType.TYPE,
+        "gas_station" to TokenType.TYPE,
+        "hospital" to TokenType.TYPE,
+        "cafe" to TokenType.TYPE,
+        "bar" to TokenType.TYPE,
+        "nightclub" to TokenType.TYPE,
+        "club" to TokenType.TYPE,
     )
 
     fun tokenize(): List<Token> {
@@ -106,8 +114,8 @@ class Lexer(private val input: String) {
     // STATE TABLE DFA
     private val acceptingStates = mapOf(
         1 to TokenType.INT,
-        3 to TokenType.FLOAT,
-        4 to TokenType.IDENTIFIER,
+        3 to TokenType.REAL,
+        4 to TokenType.VARIABLE,
         6 to TokenType.STRING,
         7 to TokenType.ASSIGN,
         //8 to TokenType.ASSIGN,
@@ -199,7 +207,7 @@ class Lexer(private val input: String) {
 
         // Če je IDENTIFIER, preveri ali je to dejansko ključna beseda
         val finalType = when (type) {
-            TokenType.IDENTIFIER -> keywords[text] ?: TokenType.IDENTIFIER
+            TokenType.VARIABLE -> keywords[text] ?: TokenType.VARIABLE
             TokenType.STRING -> TokenType.STRING
             else -> type
         }
