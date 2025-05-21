@@ -1,6 +1,6 @@
 enum class TokenType {
     // Keywords
-    LET, IF, ELSE, FOREACH, IN,
+    LET, IF, ELSE, FOR, IN,
     TRANSACTION, ACCOUNT, LINK, SET, SHOW, ALERT, HIGHLIGHT, NEIGH,
     FST, SND,
 
@@ -26,5 +26,6 @@ enum class TokenType {
     FUN, TO, CONSOLE, CITY, ROAD, BUILDING, LOCATION,
 
     // Others
-    IDENTIFIER, EOF, ERROR
+    IDENTIFIER, EOF, ERROR,
+    TYPE
 }

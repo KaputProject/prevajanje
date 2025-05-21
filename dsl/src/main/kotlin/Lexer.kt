@@ -7,7 +7,7 @@ class Lexer(private val input: String) {
         "let" to TokenType.LET,
         "if" to TokenType.IF,
         "else" to TokenType.ELSE,
-        "foreach" to TokenType.FOREACH,
+        "for" to TokenType.FOR,
         "in" to TokenType.IN,
         "transaction" to TokenType.TRANSACTION,
         "account" to TokenType.ACCOUNT,
@@ -35,7 +35,8 @@ class Lexer(private val input: String) {
         "city" to TokenType.CITY,
         "road" to TokenType.ROAD,
         "building" to TokenType.BUILDING,
-        "location" to TokenType.LOCATION
+        "location" to TokenType.LOCATION,
+        "restaurant" to TokenType.TYPE
     )
 
     fun tokenize(): List<Token> {
