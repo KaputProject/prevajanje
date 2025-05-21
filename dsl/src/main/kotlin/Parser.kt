@@ -1,6 +1,3 @@
-import java.beans.Expression
-import kotlin.math.E
-
 class Parser(private val tokens: List<Token>) {
     private var index = 0
     fun match(tokenType: TokenType): Boolean {
@@ -13,7 +10,7 @@ class Parser(private val tokens: List<Token>) {
     }
 
     fun primary(): Boolean {
-        if (match(TokenType.INT) || match(TokenType.FLOAT) || match(TokenType.IDENTIFIER)) {
+        if (match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE)) {
             return true
         } else if (match(TokenType.LPAREN) && bitwise() && match(TokenType.RPAREN)) {
             return true
@@ -128,7 +125,7 @@ class Parser(private val tokens: List<Token>) {
 //        } else return false
 //    }
 private fun assign(): Boolean {
-    if (match(TokenType.LET) && match(TokenType.IDENTIFIER) && match(TokenType.ASSIGN) && bitwise()) {
+    if (match(TokenType.LET) && match(TokenType.VARIABLE) && match(TokenType.ASSIGN) && bitwise()) {
         return true
     } else return false
 }
@@ -186,14 +183,14 @@ private fun assign(): Boolean {
     }
 
     private fun Params(): Boolean {
-        if (match(TokenType.IDENTIFIER) && ParamsPrime()) {
+        if (match(TokenType.VARIABLE) && ParamsPrime()) {
             return true
         }
         return false
     }
 
     private fun ParamsPrime(): Boolean {
-        if (match(TokenType.COMMA) && match(TokenType.IDENTIFIER) && ParamsPrime()) {
+        if (match(TokenType.COMMA) && match(TokenType.VARIABLE) && ParamsPrime()) {
 
             return true
         }
@@ -214,7 +211,7 @@ private fun assign(): Boolean {
                 TokenType.RBRACE
             ) -> true
 
-            match(TokenType.LOCATION) && match(TokenType.STRING) && match(TokenType.TYPE) && match(TokenType.FLOAT) && match(TokenType.LBRACE) && expressions() && match(
+            match(TokenType.LOCATION) && match(TokenType.STRING) && match(TokenType.TYPE) && match(TokenType.REAL) && match(TokenType.LBRACE) && expressions() && match(
                 TokenType.RBRACE
             ) -> true
 

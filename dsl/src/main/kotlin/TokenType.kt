@@ -5,10 +5,10 @@ enum class TokenType {
     FST, SND,
 
     // Literals
-    INT, FLOAT, STRING, DATE, NIL,
+    INT, REAL, STRING, DATE, NIL,
 
     // Symbols
-    LBRACE, RBRACE, LPAREN, RPAREN, LBRACKET, RBRACKET,
+    LBRACE, RBRACE, LPAREN, RPAREN,
     COLON, SEMICOLON, COMMA, ASSIGN,
     PLUS, MINUS, MUL, DIV,
     BWAND, BWOR,
@@ -26,6 +26,5 @@ enum class TokenType {
     FUN, TO, CONSOLE, CITY, ROAD, BUILDING, LOCATION,
 
     // Others
-    IDENTIFIER, EOF, ERROR,
-    TYPE
+    VARIABLE, EOF, ERROR, TYPE
 }
