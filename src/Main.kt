@@ -24,6 +24,6 @@ fun main() {
         println(index.toString() + " " + token)
         index++
     }
-    val parser = Parser(tokens)
+    val parser = Evaluator(tokens)
     println(parser.program())
 }

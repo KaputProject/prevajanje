@@ -16,7 +16,7 @@ class Parser(private val tokens: List<Token>) {
         } else if (match(TokenType.LPAREN) && bitwise() && match(TokenType.RPAREN)) {
             true
         } else if (getSpend()) {
-            true;
+            true
         } else false
     }
 
