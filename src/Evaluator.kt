@@ -71,16 +71,6 @@ class Evaluator(
         }
     }
 
-    fun expressions(atLeastOne: Boolean = false): Boolean {
-        val start = index
-        if (expr()) {
-            while (expr()) {}
-            return true
-        }
-        index = start
-        return !atLeastOne
-    }
-
     private fun getSpend(): Boolean {
         val start = index
         if (match(TokenType.GET_SPENT)) {
@@ -278,6 +268,22 @@ class Evaluator(
                 index = start
                 false
             }
+        }
+    }
+
+    fun expressions(atLeastOne: Boolean = false): Boolean {
+        val start = index
+        if (expr()) return expressionsPrime()
+        index = start
+        return !atLeastOne
+    }
+
+    private fun expressionsPrime(): Boolean {
+        val start = index
+        return if (expr()) {
+            expressionsPrime()
+        } else {
+            true
         }
     }
 

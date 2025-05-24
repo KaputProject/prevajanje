@@ -58,7 +58,10 @@ fun "niz" (PARAMS) {
 ```
 Program ::= Expressions EOF
 
-Expressions     ::= Expr Expressions | ε
+Program         ::= Expressions EOF
+
+Expressions     ::= Expr Expressions'
+Expressions'    ::= Expr Expressions' | ε
 
 Expr            ::= Assign
                 | For
