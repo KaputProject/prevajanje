@@ -14,9 +14,17 @@ fun main() {
             }
         }
     }
+    city "maribor" { let a =  }
+    road "maribor" { let a = 1}
+    building "maribor" { let a = 1}
+    
+    
     """.trimIndent()
     val code2 = """
-        box ((0, 0), (1, 1))
+    road "maribor" { let a = 1}
+    city "maribor" { let a =  }
+    road "maribor" { let a = 1}
+    building "maribor" { let a = 1}
     """.trimIndent()
     val code3 = """
     set_spent "Mango" (get_spent "Mango" + 10.5)
@@ -39,11 +47,12 @@ fun main() {
     """.trimIndent()
 
 
-    val lexer = Lexer(code3)
+    val lexer = Lexer(code2)
     val tokens = lexer.tokenize()
-
+    var index = 0
     for (token in tokens) {
-        println(token)
+        println(index.toString() + " " + token)
+        index++
     }
     val parser = Parser(tokens)
     println(parser.expressions())

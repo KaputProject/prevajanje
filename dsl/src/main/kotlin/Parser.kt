@@ -10,7 +10,7 @@ class Parser(private val tokens: List<Token>) {
     }
 
     fun primary(): Boolean {
-        if (match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE) || match(TokenType.STRING) ) {
+        if (match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE) || match(TokenType.STRING)) {
             return true
         } else if (match(TokenType.LPAREN) && bitwise() && match(TokenType.RPAREN)) {
             return true
@@ -46,8 +46,7 @@ class Parser(private val tokens: List<Token>) {
 
 
     fun additive(): Boolean {
-        if (multiplicative() && additivePrime())
-            return true
+        if (multiplicative() && additivePrime()) return true
         else return false
     }
 
@@ -63,9 +62,13 @@ class Parser(private val tokens: List<Token>) {
 
 
     fun bitwise(): Boolean {
+        val start = index
         if (additive() && bitwisePrime()) return true
-        else return false
+        index = start
+        return false
     }
+
+
 
     fun bitwisePrime(): Boolean {
         if (match(TokenType.BWAND) || match(TokenType.BWOR)) {
@@ -98,7 +101,6 @@ class Parser(private val tokens: List<Token>) {
     }
 
 
-
     fun expressions(atLeastOne: Boolean = false): Boolean {
         val start = index
         if (expr()) {
@@ -106,36 +108,49 @@ class Parser(private val tokens: List<Token>) {
                 return true
             }
         }
+
         index = start // backtrack
         return atLeastOne // ε samo če smo že imeli vsaj en Expr
     }
 
 
     private fun getSpend(): Boolean {
-        return match(TokenType.GET_SPENT) && match(TokenType.STRING)
+        val start = index
+        if( match(TokenType.GET_SPENT) && match(TokenType.STRING)){
+            return true
+        }
+        else {
+            index = start
+            return false
+        }
     }
 
     private fun setSpend(): Boolean {
-        return match(TokenType.SET_SPENT) && match(TokenType.STRING) && bitwise()
+        val start = index
+        if (match(TokenType.SET_SPENT) && match(TokenType.STRING) && bitwise()) return true
+        else {
+            index = start
+            return false
+        }
     }
 
 
-//    private fun assign(): Boolean {
-//        if (match(TokenType.LET) && match(TokenType.IDENTIFIER) && match(TokenType.ASSIGN) && bitwise()) {
-//            retur     n true
-//        } else return false
-//    }
+    private fun assign(): Boolean {
+        val start = index
+        if (match(TokenType.LET) && match(TokenType.VARIABLE) && match(TokenType.ASSIGN) && bitwise()) {
+            return true
+        }
+        index = start
+        return false
+    }
 
-private fun assign(): Boolean {
-    if (match(TokenType.LET) && match(TokenType.VARIABLE) && match(TokenType.ASSIGN) && bitwise()) {
-        return true
-    } else return false
-}
+
 
     private fun For(): Boolean {
         val start = index
-        if (match(TokenType.FOR) && match(TokenType.LPAREN) && assign() && match(TokenType.TO) && bitwise() &&
-            match(TokenType.RPAREN) && match(TokenType.LBRACE) && expressions() && match(TokenType.RBRACE)
+        if (match(TokenType.FOR) && match(TokenType.LPAREN) && assign() && match(TokenType.TO) && bitwise() && match(
+                TokenType.RPAREN
+            ) && match(TokenType.LBRACE) && expressions() && match(TokenType.RBRACE)
         ) {
             return true
         }
@@ -151,7 +166,9 @@ private fun assign(): Boolean {
     }
 
     private fun If(): Boolean {
-        if (match(TokenType.IF) && match(TokenType.LPAREN) && Comparison() && match(TokenType.RPAREN) && match(TokenType.LBRACE) && expressions() && match(TokenType.RBRACE) && Else()
+        if (match(TokenType.IF) && match(TokenType.LPAREN) && Comparison() && match(TokenType.RPAREN) && match(TokenType.LBRACE) && expressions() && match(
+                TokenType.RBRACE
+            ) && Else()
         ) {
             return true
         } else return false
@@ -215,7 +232,9 @@ private fun assign(): Boolean {
                 TokenType.RBRACE
             ) -> true
 
-            match(TokenType.LOCATION) && match(TokenType.STRING) && match(TokenType.TYPE) && match(TokenType.REAL) && match(TokenType.LBRACE) && expressions() && match(TokenType.RBRACE) -> true
+            match(TokenType.LOCATION) && match(TokenType.STRING) && match(TokenType.TYPE) && match(TokenType.REAL) && match(
+                TokenType.LBRACE
+            ) && expressions() && match(TokenType.RBRACE) -> true
 
             else -> false
         }
@@ -229,45 +248,27 @@ private fun assign(): Boolean {
 
     private fun draw(): Boolean {
         return when {
-            match(TokenType.LINE) &&
-                    match(TokenType.LPAREN) &&
-                    point() &&
-                    match(TokenType.COMMA) &&
-                    point() &&
-                    match(TokenType.RPAREN) -> true
+            match(TokenType.LINE) && match(TokenType.LPAREN) && point() && match(TokenType.COMMA) && point() && match(
+                TokenType.RPAREN
+            ) -> true
 
-            match(TokenType.BEND) &&
-                    match(TokenType.LPAREN) &&
-                    point() &&
-                    match(TokenType.COMMA) &&
-                    point() &&
-                    match(TokenType.COMMA) &&
-                    bitwise() &&
-                    match(TokenType.RPAREN) -> true
+            match(TokenType.BEND) && match(TokenType.LPAREN) && point() && match(TokenType.COMMA) && point() && match(
+                TokenType.COMMA
+            ) && bitwise() && match(TokenType.RPAREN) -> true
 
-            match(TokenType.BOX) &&
-                    match(TokenType.LPAREN) &&
-                    point() &&
-                    match(TokenType.COMMA) &&
-                    point() &&
-                    match(TokenType.RPAREN) -> true
+            match(TokenType.BOX) && match(TokenType.LPAREN) && point() && match(TokenType.COMMA) && point() && match(
+                TokenType.RPAREN
+            ) -> true
 
-            match(TokenType.CIRCLE) &&
-                    match(TokenType.LPAREN) &&
-                    point() &&
-                    match(TokenType.COMMA) &&
-                    bitwise() &&
-                    match(TokenType.RPAREN) -> true
+            match(TokenType.CIRCLE) && match(TokenType.LPAREN) && point() && match(TokenType.COMMA) && bitwise() && match(
+                TokenType.RPAREN
+            ) -> true
 
-            match(TokenType.POINT) &&
-                    match(TokenType.LPAREN) &&
-                    point() &&
-                    match(TokenType.RPAREN) -> true
+            match(TokenType.POINT) && match(TokenType.LPAREN) && point() && match(TokenType.RPAREN) -> true
 
             else -> false
         }
     }
-
 
 
 }
