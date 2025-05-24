@@ -14,14 +14,13 @@ fun main() {
             }
         }
     }
-    city "maribor" { let a =  }
+    city "maribor" { let a =  2}
     road "maribor" { let a = 1}
     building "maribor" { let a = 1}
     
     
     """.trimIndent()
     val code2 = """
-    road "maribor" { let a = 1}
     city "maribor" { let a =  }
     road "maribor" { let a = 1}
     building "maribor" { let a = 1}
@@ -30,9 +29,7 @@ fun main() {
     set_spent "Mango" (get_spent "Mango" + 10.5)
     """.trimIndent()
     val code4 = """
-    for (let x = 1 to 10 ) {
-        let a = 1
-    }
+    1>
     """.trimIndent()
     val code5 = """
      location "Mango" restaurant 0 {
@@ -47,7 +44,7 @@ fun main() {
     """.trimIndent()
 
 
-    val lexer = Lexer(code2)
+    val lexer = Lexer(code4)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {
