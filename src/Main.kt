@@ -17,7 +17,15 @@ fun main() {
         point ((1, 1))
     }""".trimIndent()
 
-    val lexer = Lexer(code1)
+    val code2 = """
+        if ( f > 9 ) {
+            console f
+        } else {   
+            console f
+        }
+    """.trimIndent()
+
+    val lexer = Lexer(code2)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {

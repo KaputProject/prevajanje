@@ -38,24 +38,39 @@ class Evaluator(
 
     fun multiplicative(): Boolean {
         if (!unary()) return false
-        while (match(TokenType.MUL) || match(TokenType.DIV)) {
+        return multiplicativePrime()
+    }
+
+    private fun multiplicativePrime(): Boolean {
+        if (match(TokenType.MUL) || match(TokenType.DIV)) {
             if (!unary()) throw ParseException("Expected value after '*' or '/' at index $index")
+            return multiplicativePrime()
         }
         return true
     }
 
     fun additive(): Boolean {
         if (!multiplicative()) return false
-        while (match(TokenType.PLUS) || match(TokenType.MINUS)) {
+        return additivePrime()
+    }
+
+    private fun additivePrime(): Boolean {
+        if (match(TokenType.PLUS) || match(TokenType.MINUS)) {
             if (!multiplicative()) throw ParseException("Expected value after '+' or '-' at index $index")
+            return additivePrime()
         }
         return true
     }
 
     fun bitwise(): Boolean {
         if (!additive()) return false
-        while (match(TokenType.BWAND) || match(TokenType.BWOR)) {
+        return bitwisePrime()
+    }
+
+    private fun bitwisePrime(): Boolean {
+        if (match(TokenType.BWAND) || match(TokenType.BWOR)) {
             if (!additive()) throw ParseException("Expected value after '&' or '|' at index $index")
+            return bitwisePrime()
         }
         return true
     }
@@ -187,9 +202,15 @@ class Evaluator(
 
     private fun Params(): Boolean {
         if (match(TokenType.VARIABLE)) {
-            while (match(TokenType.COMMA)) {
-                if (!match(TokenType.VARIABLE)) throw ParseException("Expected variable after ',' in parameters at index $index")
-            }
+            return ParamsPrime()
+        }
+        return true
+    }
+
+    private fun ParamsPrime(): Boolean {
+        if (match(TokenType.COMMA)) {
+            if (!match(TokenType.VARIABLE)) throw ParseException("Expected variable after ',' in parameters at index $index")
+            return ParamsPrime()
         }
         return true
     }
