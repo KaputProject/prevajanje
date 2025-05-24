@@ -17,8 +17,6 @@ fun main() {
     city "maribor" { let a =  2}
     road "maribor" { let a = 1}
     building "maribor" { let a = 1}
-    
-    
     """.trimIndent()
     val code2 = """
     city "maribor" { let a =  }
@@ -38,7 +36,6 @@ fun main() {
     } else {
         console "No spent"
     }
-
     box ((0, 0), (1, 1))
     }
     """.trimIndent()
