@@ -56,10 +56,11 @@ fun "niz" (PARAMS) {
 
 ## Gramatika:
 ```
+Program ::= Expressions EOF
+
 Expressions     ::= Expr Expressions | ε
 
-Expr            ::= Bitwise
-                | Assign
+Expr            ::= Assign
                 | For
                 | Console
                 | If

@@ -10,15 +10,14 @@ class Parser(private val tokens: List<Token>) {
     }
 
     fun primary(): Boolean {
-        if (match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE) || match(TokenType.STRING)) {
-            return true
+        return if (match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE) || match(TokenType.STRING)) {
+            true
         } else if (match(TokenType.LPAREN) && bitwise() && match(TokenType.RPAREN)) {
-            return true
+            true
         } else if (getSpend()) {
-            return true;
-        } else return false
+            true;
+        } else false
     }
-
 
     private fun unary(): Boolean {
         return when {
@@ -27,7 +26,6 @@ class Parser(private val tokens: List<Token>) {
             else -> primary()
         }
     }
-
 
     fun multiplicative(): Boolean {
         if (unary() && multiplicativePrime()) return true
@@ -44,7 +42,6 @@ class Parser(private val tokens: List<Token>) {
         return true // ε
     }
 
-
     fun additive(): Boolean {
         if (multiplicative() && additivePrime()) return true
         else return false
@@ -60,15 +57,12 @@ class Parser(private val tokens: List<Token>) {
         return true  // ε
     }
 
-
     fun bitwise(): Boolean {
         val start = index
         if (additive() && bitwisePrime()) return true
         index = start
         return false
     }
-
-
 
     fun bitwisePrime(): Boolean {
         if (match(TokenType.BWAND) || match(TokenType.BWOR)) {
@@ -79,7 +73,6 @@ class Parser(private val tokens: List<Token>) {
         }
         return true // ε
     }
-
 
     fun expr(): Boolean {
         val start = index
@@ -92,14 +85,12 @@ class Parser(private val tokens: List<Token>) {
             Block() -> true
             setSpend() -> true
             draw() -> true
-            bitwise() -> true
             else -> {
                 index = start
                 false
             }
         }
     }
-
 
     fun expressions(atLeastOne: Boolean = false): Boolean {
         val start = index
@@ -134,7 +125,6 @@ class Parser(private val tokens: List<Token>) {
         }
     }
 
-
     private fun assign(): Boolean {
         val start = index
         if (match(TokenType.LET) && match(TokenType.VARIABLE) && match(TokenType.ASSIGN) && bitwise()) {
@@ -143,8 +133,6 @@ class Parser(private val tokens: List<Token>) {
         index = start
         return false
     }
-
-
 
     private fun For(): Boolean {
         val start = index
@@ -157,7 +145,6 @@ class Parser(private val tokens: List<Token>) {
         index = start // rollback
         return false
     }
-
 
     private fun Console(): Boolean {
         if (match(TokenType.CONSOLE) && bitwise()) {
@@ -240,11 +227,9 @@ class Parser(private val tokens: List<Token>) {
         }
     }
 
-
     private fun point(): Boolean {
         return match(TokenType.LPAREN) && bitwise() && match(TokenType.COMMA) && bitwise() && match(TokenType.RPAREN)
     }
-
 
     private fun draw(): Boolean {
         return when {
@@ -270,5 +255,7 @@ class Parser(private val tokens: List<Token>) {
         }
     }
 
-
+    fun program(): Boolean {
+        return expressions(atLeastOne = true) && index == tokens.size - 1
+    }
 }
