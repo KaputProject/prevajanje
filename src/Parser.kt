@@ -1,11 +1,12 @@
 class Parser(private val tokens: List<Token>) {
     private var index = 0
+
     fun match(tokenType: TokenType): Boolean {
         if (index < tokens.size && tokens[index].type == tokenType) {
             index++
             return true
         }
-        //println("napaka" + tokens[index])
+
         return false
     }
 
