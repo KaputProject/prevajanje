@@ -56,10 +56,11 @@ fun "niz" (PARAMS) {
 
 ## Gramatika:
 ```
+Program ::= Expressions EOF
+
 Expressions     ::= Expr Expressions | ε
 
-Expr            ::= Bitwise
-                | Assign
+Expr            ::= Assign
                 | For
                 | Console
                 | If
@@ -67,6 +68,7 @@ Expr            ::= Bitwise
                 | Block
                 | SetSpent
                 | Draw
+                | FunctionCall
 
 // Kommande za risanje na zemljevidu
 Draw            ::= 'line' '(' Point ',' Point ')'
@@ -122,6 +124,10 @@ Comparison' ::= '>' Bitwise | '<' Bitwise | '==' Bitwise | '!=' Bitwise | ε
 Fun             ::= 'fun' STRING '(' Params ')' '{' Expressions '}'
 Params          ::= VARIABLE Params' | ε
 Params'         ::= ',' VARIABLE Params' | ε
+
+FunctionCall    ::= STRING '(' Arguments ')'
+Arguments       ::= Bitwise Arguments' | ε
+Arguments'      ::= ',' Bitwise Arguments' | ε
 
 Block           ::= 'city' STRING '{' Expressions '}'
                 | 'road' STRING '{' Expressions '}'
