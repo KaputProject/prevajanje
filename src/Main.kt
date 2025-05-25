@@ -35,11 +35,10 @@ fun main() {
     """.trimIndent()
 
     val code3 = """
-        let f = 3
+        let f = 10
         if (f > 9) {
             console 1
         } else {
-            console 3
             console 2
         }
     """.trimIndent()

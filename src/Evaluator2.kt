@@ -50,6 +50,8 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             console()
         } else if (match(TokenType.IF)) {
             ifStmt()
+        } else if (match(TokenType.FOR)) {
+            forLoop()
         } else {
             return false
         }
@@ -58,13 +60,14 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         //return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
-    private fun assign() {
+    private fun assign(): String {
         val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
         consume(TokenType.ASSIGN, "Expected '=' after variable")
 
         try {
             val value = bitwise()
             variables[name] = value
+            return name
         } catch (e: Exception) {
             throw ParseException("The bitwise call inside assign has failed with message: ${e.message}")
         }
@@ -98,17 +101,22 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             val condition = comparison()
 
             if (condition) {
+                consume(TokenType.RPAREN, "Expected ')' after IF")
+                consume(TokenType.LBRACE, "Expected '{' after condition in IF")
                 expressions()
+
+                consume(TokenType.RBRACE, "Expected '}' after condition in IF")
+
+                if (match(TokenType.ELSE)) {
+                    consume(TokenType.LBRACE, "Expected '}' after condition in IF")
+                    skip()
+                }
+
             } else {
                 consume(TokenType.RPAREN, "Expected ')' after IF")
                 consume(TokenType.LBRACE, "Expected '{' after condition in IF")
-                while (index < tokens.size) {
-                    if (tokens[index].type == TokenType.RBRACE) {
-                        consume(TokenType.RBRACE, "Failed when attempting to skip THEN in IF on false condition")
-                        break
-                    }
-                    index++
-                }
+
+                skip()
 
                 if (match(TokenType.ELSE)) {
                     elseStmt()
@@ -116,6 +124,24 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             }
         } catch (e: Exception) {
             throw ParseException("IF has failed with message: ${e.message}")
+        }
+    }
+
+    private fun skip() {
+        var lbrace = 1
+        var rbrace = 0
+        while (this.index < tokens.size - 1) {
+            if (match(TokenType.RBRACE)) {
+                rbrace += 1
+
+                if (rbrace == lbrace) {
+                    return
+                }
+
+            } else if (match(TokenType.LBRACE)) {
+                lbrace += 1
+            }
+            this.index += 1
         }
     }
 
@@ -145,22 +171,29 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun forLoop(): Statement.For? {
-//        val start = index
-//        if (match(TokenType.FOR)) {
-//            consume(TokenType.LPAREN, "Expected '(' after FOR")
-//            val init = assign() ?: throw ParseException("Expected assignment in FOR")
-//            consume(TokenType.TO, "Expected TO in FOR")
-//            val limit = bitwise() ?: throw ParseException("Expected limit expression in FOR")
-//            consume(TokenType.RPAREN, "Expected ')' after FOR")
-//            consume(TokenType.LBRACE, "Expected '{' to start FOR body")
-//            val body = expressions()
-//            consume(TokenType.RBRACE, "Expected '}' to close FOR")
-//            return Statement.For(init, limit, body)
-//        }
-//        index = start
-//        return null
-//    }
+    private fun forLoop() {
+        try {
+            consume(TokenType.LPAREN, "Expected '(' after FOR")
+            val from = assign()
+
+            consume(TokenType.TO, "Expected TO in FOR")
+            val limit = bitwise().toInt()
+
+            consume(TokenType.RPAREN, "Expected ')' after FOR")
+            consume(TokenType.LBRACE, "Expected '{' to start FOR body")
+
+            val start = this.index
+            while (variables[from]!!.toInt() <= limit) {
+                this.index = start
+                expressions()
+                variables[from] = variables[from]!! + BigDecimal(1)
+            }
+
+            consume(TokenType.RBRACE, "Expected '}' to close FOR")
+        } catch (e: Exception) {
+            throw ParseException("Error in FOR: ${e.message}")
+        }
+    }
 
 //    private fun function(): Statement.Fun? {
 //        val start = index
