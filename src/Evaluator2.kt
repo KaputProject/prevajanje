@@ -1,18 +1,25 @@
 import classes.*
 import java.math.BigDecimal
 
-class Block(
+open class Block(
     val type: String,
     val name: String,
-    val body: List<Statement>,
-    val locationType: String? = null,
-    val locationValue: BigDecimal? = null,
+    val body: List<Statement> = listOf(),
 )
+
+class Location(
+    type: String,
+    name: String,
+    body: List<Statement>,
+    val locationType: String? = null,
+    var locationValue: BigDecimal? = null,
+) : Block(type, name, body)
+
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
-    private var locations: MutableMap<String, Block> = mutableMapOf()
-    private var currentBlock: String = ""
+    private var blocks: MutableMap<String, Block> = mutableMapOf()
+    private var currentBlock: String? = null
 
     private fun match(vararg expected: TokenType): Boolean {
         if (index < tokens.size && expected.contains(tokens[index].type)) {
@@ -32,7 +39,7 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         expressions()
         consume(TokenType.EOF, "Expected end of file, index ${index}")
 
-        return locations
+        return blocks
     }
 
     private fun expressions() {
@@ -52,6 +59,10 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             ifStmt()
         } else if (match(TokenType.FOR)) {
             forLoop()
+        } else if (match(TokenType.CITY) || match(TokenType.ROAD) || match(TokenType.BUILDING) || match(TokenType.LOCATION)) {
+            block()
+        } else if (match(TokenType.SET_SPENT)){
+            setSpent()
         } else {
             return false
         }
@@ -73,16 +84,17 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun setSpend(): Statement.SetSpend? {
-//        val start = index
-//        if (match(TokenType.SET_SPENT)) {
-//            val key = consume(TokenType.STRING, "Expected string after SET_SPENT").text
-//            val expr = bitwise() ?: throw ParseException("Expected expression after string")
-//            return Statement.SetSpend(key, expr)
-//        }
-//        index = start
-//        return null
-//    }
+    private fun setSpent() {
+        val key = consume(TokenType.STRING, "Expected string after SET_SPENT").text
+        val value = bitwise()
+
+        val location = blocks[key]
+        if (location is Location) {
+            location.locationValue = BigDecimal(value.toDouble())
+        } else {
+            throw ParseException("SET_SPENT failed: '$key' is not a valid Location.")
+        }
+    }
 
     private fun console() {
         try {
@@ -226,35 +238,44 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
 //        return emptyList()
 //    }
 
-//    private fun block(): Statement.Block? {
-//        val start = index
-//        val type = when {
-//            match(TokenType.CITY) -> "CITY"
-//            match(TokenType.ROAD) -> "ROAD"
-//            match(TokenType.BUILDING) -> "BUILDING"
-//            match(TokenType.LOCATION) -> "LOCATION"
-//            else -> null
-//        } ?: run {
-//            index = start
-//            return null
-//        }
-//
-//        val name = consume(TokenType.STRING, "Expected name string after block type").text
-//
-//        var locationType: String? = null
-//        var locationValue: Double? = null
-//
-//        if (type == "LOCATION") {
-//            locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
-//            locationValue = consume(TokenType.REAL, "Expected REAL after TYPE in location block").text.toDouble()
-//        }
-//
-//        consume(TokenType.LBRACE, "Expected '{' after block declaration")
-//        val body = expressions()
-//        consume(TokenType.RBRACE, "Expected '}' to close block")
-//
-//        return Statement.Block(type, name, body, locationType, locationValue)
-//    }
+    private fun block() {
+        try {
+            this.index -= 1
+            val type = when {
+                match(TokenType.CITY) -> "CITY"
+                match(TokenType.ROAD) -> "ROAD"
+                match(TokenType.BUILDING) -> "BUILDING"
+                match(TokenType.LOCATION) -> "LOCATION"
+                else -> throw ParseException("Expected block type (CITY, ROAD, BUILDING, LOCATION)")
+            }
+
+            val name = consume(TokenType.STRING, "Expected name string after block type").text
+            var newBlock: Block? = null
+
+            var locationType: String? = null
+            var locationValue: BigDecimal? = null
+
+            if (type == "LOCATION") {
+                locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
+                locationValue = BigDecimal(consume(TokenType.REAL, "Expected REAL after TYPE in location block").text)
+
+                newBlock = Location(type, name, listOf(), locationType, locationValue)
+            } else {
+                newBlock = Block(type, name)
+            }
+
+            currentBlock = newBlock.name
+            blocks.put(newBlock.name, newBlock)
+
+            consume(TokenType.LBRACE, "Expected '{' after block declaration")
+            expressions()
+            consume(TokenType.RBRACE, "Expected '}' to close block")
+
+            currentBlock = null
+        } catch (e: Exception) {
+            throw ParseException("Error in BLOCK: ${e.message}")
+        }
+    }
 
 
 //    private fun draw(): Statement.DrawCommand? {
@@ -388,8 +409,9 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         } else if (match(TokenType.GET_SPENT)) {
             val key = consume(TokenType.STRING, "Expected string after GET_SPENT").text
 
-            if (locations[key]?.locationType != null) {
-                return locations[key]?.locationValue!!
+            val location = blocks[key]
+            if (location is Location && location.locationValue != null) {
+                return location.locationValue!!
             }
 
             throw ParseException("A location with the name of ${key} doesn't exist!")

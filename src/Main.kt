@@ -66,7 +66,22 @@ fun main() {
         console 4
     """.trimIndent()
 
-    val lexer = Lexer(code3)
+    val code7 = """
+    location "Mango" restaurant 0.0 {
+        for (let x = 1 to 10 ) {
+            console x
+        }
+        
+        let f = 10
+        if (f > 9) {
+            console f
+        }
+    }
+    set_spent "Mango" 7
+    set_spent "Mango" get_spent "Mango" + 93
+    """.trimIndent()
+
+    val lexer = Lexer(code7)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {
@@ -74,9 +89,14 @@ fun main() {
         index++
     }
 
-    val evaluator = Evaluator2(tokens, mutableMapOf())
-    val program = evaluator.program()
-    for (location in program) {
-        println(location)
+    val evaluator = Evaluator2(tokens)
+    val blocks = evaluator.program()
+
+    println("Parsed blocks:")
+    for ((key, block) in blocks) {
+        println("Name: ${block.name}, Type: ${block.type}, Body size: ${block.body.size}")
+        if (block is Location) {
+            println("  Location type: ${block.locationType}, Value: ${block.locationValue}")
+        }
     }
 }
