@@ -111,14 +111,12 @@ class Lexer(private val input: String) {
         else -> CharCategory.OTHER
     }
 
-    // STATE TABLE DFA
     private val acceptingStates = mapOf(
         1 to TokenType.INT,
         3 to TokenType.REAL,
         4 to TokenType.VARIABLE,
         6 to TokenType.STRING,
         7 to TokenType.ASSIGN,
-        //8 to TokenType.ASSIGN,
         9 to TokenType.EQ,
         10 to TokenType.NOT,
         11 to TokenType.NEQ,
@@ -164,7 +162,6 @@ class Lexer(private val input: String) {
         2 to mapOf(CharCategory.DIGIT to 3),
         3 to mapOf(CharCategory.DIGIT to 3),
         4 to mapOf(CharCategory.LETTER to 4, CharCategory.DIGIT to 4, CharCategory.UNDERSCORE to 4),
-        //5 to mapOf(CharCategory.QUOTE to 6, CharCategory.OTHER to 5, CharCategory.LETTER to 5, CharCategory.DIGIT to 5, CharCategory.DOT to 5, CharCategory.UNDERSCORE to 5, CharCategory.MINUS to 5),
         7 to mapOf(CharCategory.EQ to 9),
         10 to mapOf(CharCategory.EQ to 11)
     )
@@ -176,43 +173,47 @@ class Lexer(private val input: String) {
         var state = 0
         var currentPos = pos
 
-        loop@ while (currentPos < input.length) {
+        while (currentPos < input.length) {
             val ch = input[currentPos]
 
-            // Poseben primer: v string literal načinu (state 5)
             if (state == 5) {
                 sb.append(ch)
                 currentPos++
                 if (ch == '"') {
-                    state = 6 // zaključen niz
-                    break@loop
+                    state = 6
+                    break
                 }
-                continue@loop
+                continue
             }
 
             val cat = categorize(ch)
-            val next = dfaTable[state]?.get(cat) ?: break@loop
+            val next = dfaTable[state]?.get(cat) ?: break
             sb.append(ch)
             state = next
             currentPos++
         }
 
-        // Premakni kazalec (pos) do mesta, kjer smo zaključili z branjem
         while (pos < currentPos) advance()
 
         val text = sb.toString()
 
-        // Če stanje ni sprejemno, vrni napako
         val type = acceptingStates[state] ?: return Token(TokenType.ERROR, text, startLine, startCol)
 
-        // Če je IDENTIFIER, preveri ali je to dejansko ključna beseda
         val finalType = when (type) {
-            TokenType.VARIABLE -> keywords[text] ?: TokenType.VARIABLE
+            TokenType.VARIABLE -> {
+                val kwType = keywords[text]
+                if (kwType != null) {
+                    kwType
+                } else if (peek() == '(') {
+                    TokenType.CALL
+                } else {
+                    TokenType.VARIABLE
+                }
+            }
             TokenType.STRING -> TokenType.STRING
             else -> type
         }
 
-        // Če je niz ali datum, odstrani narekovaje
         val value = when (finalType) {
             TokenType.STRING -> text.drop(1).dropLast(1)
             TokenType.DATE -> text.drop(1).dropLast(1)
