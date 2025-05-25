@@ -1,52 +1,14 @@
 import classes.*
+import geojson.*
 import java.math.BigDecimal
 
-sealed class Shape
-
-class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "( $x , $y )"
-    }
-}
-class Line(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Box(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2 , $factor)"
-    }
-}
-class Circle(var p1: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $factor)"
-    }
-}
-
-open class Block(
-    val type: String,
-    val name: String,
-    val body: MutableList<Shape> = mutableListOf(),
-)
-
-class Location(
-    type: String,
-    name: String,
-    body: MutableList<Shape>,
-    val locationType: String? = null,
-    var locationValue: BigDecimal? = null,
-) : Block(type, name, body)
+class ParseException(message: String) : RuntimeException(message)
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
     private var blocks: MutableMap<String, Block> = mutableMapOf()
     private var currentBlock: String? = null
+    private var functions: MutableMap<String, Int> = mutableMapOf()
 
     private fun match(vararg expected: TokenType): Boolean {
         if (index < tokens.size && expected.contains(tokens[index].type)) {
@@ -92,6 +54,10 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             setSpent()
         } else if (match(TokenType.LINE) || match(TokenType.BEND) || match(TokenType.BOX) || match(TokenType.CIRCLE) || match(TokenType.POINT)) {
             draw(tokens[index-1])
+        } else if (match(TokenType.CALL)) {
+            call()
+        } else if (match(TokenType.FUN)) {
+            function()
         } else {
             return false
         }
@@ -236,35 +202,39 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun function() {
-//        try {
-//            val name = consume(TokenType.STRING, "Expected function name").text
-//            consume(TokenType.LPAREN, "Expected '(' after function name")
-//            val params = parameters()
-//            consume(TokenType.RPAREN, "Expected ')' after parameters")
-//            consume(TokenType.LBRACE, "Expected '{' before function body")
-//
-//            val body = expressions()
-//
-//            consume(TokenType.RBRACE, "Expected '}' to close function")
-//        } catch (e: Exception) {
-//            throw ParseException("Error in function: ${e.message}")
-//        }
-//    }
-//
-//    private fun parameters(): List<String> {
-//        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
-//        val rest = parametersPrime()
-//        return listOf(param) + rest
-//    }
-//
-//    private fun parametersPrime(): List<String> {
-//        if (match(TokenType.COMMA)) {
-//            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
-//            return listOf(param) + parseParametersRest()
-//        }
-//        return emptyList()
-//    }
+    private fun function() {
+        try {
+            val name = consume(TokenType.STRING, "Expected function name").text
+            consume(TokenType.LPAREN, "Expected '(' after function name")
+            val params = parameters()
+            consume(TokenType.RPAREN, "Expected ')' after parameters")
+            consume(TokenType.LBRACE, "Expected '{' before function body")
+
+            val body = expressions()
+
+            consume(TokenType.RBRACE, "Expected '}' to close function")
+        } catch (e: Exception) {
+            throw ParseException("Error in function: ${e.message}")
+        }
+    }
+
+    private fun parameters(): List<String> {
+        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
+        val rest = parametersPrime()
+        return listOf(param) + rest
+    }
+
+    private fun parametersPrime(): List<String> {
+        if (match(TokenType.COMMA)) {
+            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
+            return listOf(param) + parametersPrime()
+        }
+        return emptyList()
+    }
+
+    private fun call() {
+        this.index = functions[consume(TokenType.STRING, "Expected function index").text]!!
+    }
 
     private fun block() {
         try {
