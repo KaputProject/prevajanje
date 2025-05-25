@@ -72,16 +72,32 @@ fun main() {
             point (( 1 , x ))
         }
         
+        road "Gosposvetska" {
+            line ((1,2),(3,4))
+        }
+        
+        line ((1,2),(3,4))
+        
         let f = 10
         if (f > 9) {
             console f
         }
     }
+    line ((1,2),(3,4))
     set_spent "Mango" 7
     set_spent "Mango" get_spent "Mango" + 93
     """.trimIndent()
 
-    val lexer = Lexer(code7)
+    val code8 = """
+    city "Maribor" {
+        point ((1,2))
+        road "Gosposvetska" {
+            line ((1,2),(3,4))
+        }
+    }
+    """.trimIndent()
+
+    val lexer = Lexer(code8)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {

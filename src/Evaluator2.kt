@@ -8,7 +8,11 @@ class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
         return "( $x , $y )"
     }
 }
-class Line(var p1: Point, var p2: Point) : Shape()
+class Line(var p1: Point, var p2: Point) : Shape() {
+    override fun toString(): String {
+        return "( $p1 , $p2 )"
+    }
+}
 class Box(var p1: Point, var p2: Point) : Shape()
 class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape()
 class Circle(var p1: Point, var factor: BigDecimal)
@@ -82,7 +86,6 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
 
         return true
-        //return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
     private fun assign(): String {
@@ -298,6 +301,13 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         val shape = when {
             token.type == TokenType.POINT -> {
                 point()
+            }
+            token.type == TokenType.LINE -> {
+                val p1 = point()
+                consume(TokenType.COMMA, "Expected ',' between points in  ${token.type}")
+                val p2 = point()
+
+                Line(p1,p2)
             }
             else -> throw ParseException("Unexpected draw type: ${token.type}")
         }
