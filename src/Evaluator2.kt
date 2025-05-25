@@ -2,6 +2,8 @@ import classes.*
 import geojson.*
 import java.math.BigDecimal
 
+class ParseException(message: String) : RuntimeException(message)
+
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
     private var blocks: MutableMap<String, Block> = mutableMapOf()

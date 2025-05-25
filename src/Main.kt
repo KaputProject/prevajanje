@@ -155,8 +155,8 @@ fun main() {
     """.trimIndent()
 
     val code9 = """
-        road "arch" {
-            bend ((15.62857163132253 , 46.56327009050841) , (15.628493111378674 , 46.56311194118203) , 2)
+        building "box" {
+            box ((15.62857163132253 , 46.56327009050841) , (15.628493111378674 , 46.56311194118203))
         }
     """.trimIndent()
 
@@ -259,7 +259,7 @@ fun main() {
         }
     """.trimIndent()
 
-    val lexer = Lexer(code10)
+    val lexer = Lexer(code9)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {
@@ -272,16 +272,4 @@ fun main() {
 
     val geoJson = Features(featList).toGeoJson()
     println(geoJson)
-
-//    println("Parsed blocks:")
-//    for ((key, block) in blocks) {
-//        println("Name: ${block.name}, Type: ${block.type}")
-//        for (value in block.body) {
-//            println(value.toString())
-//        }
-//        if (block is Location) {
-//            println("  Location type: ${block.locationType}, Value: ${block.locationValue}")
-//        }
-//        println(block.toGeoJson())
-//    }
 }
