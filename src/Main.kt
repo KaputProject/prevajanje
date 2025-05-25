@@ -15,17 +15,45 @@ fun main() {
         line ((0, 0), (1, 1))
         circle ((0, 0), 0.5)
         point ((1, 1))
-    }""".trimIndent()
-
-    val code2 = """
-        if ( f > 9 ) {
-            console f
+    }
+    for (let x = 1 to 10 ) {
+            console x
+        }
+        
+        let f = 10
+        if (f > 9) {
+            box ((0, 0), (1, 1))
         } else {   
-            console f
+            bend ((0, 0), (1, 1), 0.01)
         }
     """.trimIndent()
 
-    val lexer = Lexer(code2)
+    val code2 = """
+        line ((0, 0), (1, 1))
+        circle ((0, 0), 0.5)
+        point ((1, 1))
+    """.trimIndent()
+
+    val code3 = """
+        if (f > 9) {
+            box ((0, 0), (1, 1))
+        } else {   
+            bend ((0, 0), (1, 1), 0.01)
+        }
+    """.trimIndent()
+
+    val code4 = """
+        fun "hmmmm"(a, b) {
+            console a
+            console (b + a)
+        }
+    """.trimIndent()
+
+    val code5 = """
+        setSpent "hmmm" 30
+    """.trimIndent()
+
+    val lexer = Lexer(code4)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {

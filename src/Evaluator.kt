@@ -1,314 +1,312 @@
+import classes.*
+import java.math.BigDecimal
+
 class ParseException(message: String) : RuntimeException(message)
 
-class Evaluator(
-    private val tokens: List<Token>,
-    private val variables: MutableMap<String, Int> = mutableMapOf()
-) {
+class Evaluator(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
 
-    private fun match(expected: TokenType): Boolean {
-        if (index < tokens.size && tokens[index].type == expected) {
+    private fun match(vararg expected: TokenType): Boolean {
+        if (index < tokens.size && expected.contains(tokens[index].type)) {
             index++
             return true
         }
         return false
     }
 
-    fun primary(): Boolean {
-        return when {
-            match(TokenType.INT) || match(TokenType.REAL) || match(TokenType.VARIABLE) -> true
-            match(TokenType.LPAREN) -> {
-                if (!bitwise()) throw ParseException("Expected expression after '(' at index $index")
-                if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' at index $index")
-                true
-            }
-            getSpend() -> true
-            else -> false
-        }
+    private fun consume(expected: TokenType, message: String): Token {
+        if (match(expected)) return tokens[index - 1]
+
+        throw ParseException(message)
     }
 
-    private fun unary(): Boolean {
-        return if (match(TokenType.MINUS) || match(TokenType.PLUS)) {
-            if (!primary()) throw ParseException("Expected value after unary operator at index $index")
-            true
-        } else {
-            primary()
-        }
+    fun program(): List<Statement> {
+        val stmts = expressions()
+        consume(TokenType.EOF, "Expected end of file, index ${index}")
+        return stmts
     }
 
-    fun multiplicative(): Boolean {
-        if (!unary()) return false
-        return multiplicativePrime()
+    private fun expressions(): List<Statement> {
+        val statement = expr() ?: throw ParseException("Expected at least one expression in expressions")
+        val rest = expressionsPrime()
+
+        return listOf(statement) + rest
     }
 
-    private fun multiplicativePrime(): Boolean {
-        if (match(TokenType.MUL) || match(TokenType.DIV)) {
-            if (!unary()) throw ParseException("Expected value after '*' or '/' at index $index")
-            return multiplicativePrime()
-        }
-        return true
+    private fun expressionsPrime(): List<Statement> {
+        val statement = expr() ?: return emptyList()
+
+        return listOf(statement) + expressionsPrime()
     }
 
-    fun additive(): Boolean {
-        if (!multiplicative()) return false
-        return additivePrime()
+    private fun expr(): Statement? {
+        return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
-    private fun additivePrime(): Boolean {
-        if (match(TokenType.PLUS) || match(TokenType.MINUS)) {
-            if (!multiplicative()) throw ParseException("Expected value after '+' or '-' at index $index")
-            return additivePrime()
-        }
-        return true
-    }
-
-    fun bitwise(): Boolean {
-        if (!additive()) return false
-        return bitwisePrime()
-    }
-
-    private fun bitwisePrime(): Boolean {
-        if (match(TokenType.BWAND) || match(TokenType.BWOR)) {
-            if (!additive()) throw ParseException("Expected value after '&' or '|' at index $index")
-            return bitwisePrime()
-        }
-        return true
-    }
-
-    fun expr(): Boolean {
-        val start = index
-        return when {
-            assign() || For() || Console() || If() || Fun() || Block() || setSpend() || draw() -> true
-            else -> {
-                index = start
-                false
-            }
-        }
-    }
-
-    private fun getSpend(): Boolean {
-        val start = index
-        if (match(TokenType.GET_SPENT)) {
-            if (!match(TokenType.STRING)) throw ParseException("Expected string after GET_SPENT at index $index")
-            return true
-        }
-        index = start
-        return false
-    }
-
-    private fun setSpend(): Boolean {
-        val start = index
-        if (match(TokenType.SET_SPENT)) {
-            if (!match(TokenType.STRING)) throw ParseException("Expected string after SET_SPENT at index $index")
-            if (!bitwise()) throw ParseException("Expected expression after SET_SPENT string at index $index")
-            return true
-        }
-        index = start
-        return false
-    }
-
-    private fun assign(): Boolean {
+    private fun assign(): Statement.Assign? {
         val start = index
         if (match(TokenType.LET)) {
-            if (!match(TokenType.VARIABLE)) throw ParseException("Expected variable after LET at index $index")
-            if (!match(TokenType.ASSIGN)) throw ParseException("Expected '=' after variable at index $index")
-            if (!bitwise()) throw ParseException("Expected expression after '=' at index $index")
-            return true
+            val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
+            consume(TokenType.ASSIGN, "Expected '=' after variable")
+            val expr = bitwise() ?: throw ParseException("Expected expression after '='")
+            return Statement.Assign(name, expr)
         }
         index = start
-        return false
+        return null
     }
 
-    private fun For(): Boolean {
+    private fun setSpend(): Statement.SetSpend? {
         val start = index
-        if (match(TokenType.FOR)) {
-            if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after FOR at index $index")
-            if (!assign()) throw ParseException("Expected assignment inside FOR at index $index")
-            if (!match(TokenType.TO)) throw ParseException("Expected TO in FOR at index $index")
-            if (!bitwise()) throw ParseException("Expected expression after TO in FOR at index $index")
-            if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after FOR range at index $index")
-            if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' to start FOR body at index $index")
-            if (!expressions()) throw ParseException("Expected expressions inside FOR block at index $index")
-            if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close FOR block at index $index")
-            return true
+        if (match(TokenType.SET_SPENT)) {
+            val key = consume(TokenType.STRING, "Expected string after SET_SPENT").text
+            val expr = bitwise() ?: throw ParseException("Expected expression after string")
+            return Statement.SetSpend(key, expr)
         }
         index = start
-        return false
+        return null
     }
 
-    private fun Console(): Boolean {
+    private fun console(): Statement.Console? {
         val start = index
         if (match(TokenType.CONSOLE)) {
-            if (!bitwise()) throw ParseException("Expected expression after CONSOLE at index $index")
-            return true
+            val expr = bitwise() ?: throw ParseException("Expected expression after CONSOLE")
+            return Statement.Console(expr)
         }
         index = start
-        return false
+        return null
     }
 
-    private fun If(): Boolean {
+    private fun ifStmt(): Statement.If? {
         val start = index
         if (match(TokenType.IF)) {
-            if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after IF at index $index")
-            if (!Comparison()) throw ParseException("Expected condition inside IF at index $index")
-            if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after IF condition at index $index")
-            if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' to start IF body at index $index")
-            if (!expressions()) throw ParseException("Expected expressions in IF block at index $index")
-            if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close IF block at index $index")
-            if (!Else()) throw ParseException("Invalid ELSE block after IF at index $index")
-            return true
+            consume(TokenType.LPAREN, "Expected '(' after IF")
+            val condition = comparison() ?: throw ParseException("Expected condition in IF")
+            consume(TokenType.RPAREN, "Expected ')' after IF condition")
+            consume(TokenType.LBRACE, "Expected '{' after IF")
+            val thenBranch = expressions()
+            consume(TokenType.RBRACE, "Expected '}' after IF block")
+            val elseBranch = if (match(TokenType.ELSE)) {
+                consume(TokenType.LBRACE, "Expected '{' after ELSE")
+                val elseStmts = expressions()
+                consume(TokenType.RBRACE, "Expected '}' after ELSE block")
+                elseStmts
+            } else null
+            return Statement.If(condition, thenBranch, elseBranch)
         }
         index = start
-        return false
+        return null
     }
 
-    private fun Else(): Boolean {
+    private fun comparison(): Expr? {
+        val left = bitwise() ?: return null
+        return comparisonRest(left)
+    }
+
+    private fun comparisonRest(left: Expr): Expr {
         val start = index
-        if (match(TokenType.ELSE)) {
-            if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' after ELSE at index $index")
-            if (!expressions()) throw ParseException("Expected expressions in ELSE block at index $index")
-            if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close ELSE block at index $index")
-            return true
-        }
-        return true // epsilon
-    }
-
-    private fun Comparison(): Boolean {
-        if (!bitwise()) return false
         return when {
-            match(TokenType.LT) || match(TokenType.GT) || match(TokenType.EQ) || match(TokenType.NEQ) -> {
-                if (!bitwise()) throw ParseException("Expected right-hand side in comparison at index $index")
-                true
+            match(TokenType.GT, TokenType.LT, TokenType.EQ, TokenType.NEQ) -> {
+                val op = tokens[index - 1].type
+                val right = bitwise() ?: throw ParseException("Expected right-hand side of comparison")
+                Expr.Binary(left, op, right)
             }
-            else -> true
+            else -> {
+                index = start
+                left
+            }
         }
     }
 
-    private fun Fun(): Boolean {
+    private fun forLoop(): Statement.For? {
+        val start = index
+        if (match(TokenType.FOR)) {
+            consume(TokenType.LPAREN, "Expected '(' after FOR")
+            val init = assign() ?: throw ParseException("Expected assignment in FOR")
+            consume(TokenType.TO, "Expected TO in FOR")
+            val limit = bitwise() ?: throw ParseException("Expected limit expression in FOR")
+            consume(TokenType.RPAREN, "Expected ')' after FOR")
+            consume(TokenType.LBRACE, "Expected '{' to start FOR body")
+            val body = expressions()
+            consume(TokenType.RBRACE, "Expected '}' to close FOR")
+            return Statement.For(init, limit, body)
+        }
+        index = start
+        return null
+    }
+
+    private fun function(): Statement.Fun? {
         val start = index
         if (match(TokenType.FUN)) {
-            if (!match(TokenType.STRING)) throw ParseException("Expected function name string after FUN at index $index")
-            if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after function name at index $index")
-            if (!Params()) throw ParseException("Invalid parameters in FUN at index $index")
-            if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after parameters at index $index")
-            if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' to start FUN body at index $index")
-            if (!expressions()) throw ParseException("Expected expressions inside FUN block at index $index")
-            if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close FUN block at index $index")
-            return true
+            val name = consume(TokenType.STRING, "Expected function name").text
+            consume(TokenType.LPAREN, "Expected '(' after function name")
+            val params = parseParameters()
+            consume(TokenType.RPAREN, "Expected ')' after parameters")
+            consume(TokenType.LBRACE, "Expected '{' before function body")
+            val body = expressions()
+            consume(TokenType.RBRACE, "Expected '}' to close function")
+            return Statement.Fun(name, params, body)
         }
         index = start
-        return false
+        return null
     }
 
-    private fun Params(): Boolean {
-        if (match(TokenType.VARIABLE)) {
-            return ParamsPrime()
-        }
-        return true
+    private fun parseParameters(): List<String> {
+        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
+        val rest = parseParametersRest()
+        return listOf(param) + rest
     }
 
-    private fun ParamsPrime(): Boolean {
+    private fun parseParametersRest(): List<String> {
         if (match(TokenType.COMMA)) {
-            if (!match(TokenType.VARIABLE)) throw ParseException("Expected variable after ',' in parameters at index $index")
-            return ParamsPrime()
+            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
+            return listOf(param) + parseParametersRest()
         }
-        return true
+        return emptyList()
     }
 
-    private fun Block(): Boolean {
+    private fun block(): Statement.Block? {
         val start = index
-        return when {
-            match(TokenType.CITY) || match(TokenType.ROAD) || match(TokenType.BUILDING) -> {
-                if (!match(TokenType.STRING)) throw ParseException("Expected name string after block type at index $index")
-                if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' after block name at index $index")
-                if (!expressions()) throw ParseException("Expected expressions inside block at index $index")
-                if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close block at index $index")
-                true
-            }
-            match(TokenType.LOCATION) -> {
-                if (!match(TokenType.STRING)) throw ParseException("Expected location name string at index $index")
-                if (!match(TokenType.TYPE)) throw ParseException("Expected TYPE keyword after location name at index $index")
-                if (!match(TokenType.REAL)) throw ParseException("Expected real number after TYPE at index $index")
-                if (!match(TokenType.LBRACE)) throw ParseException("Expected '{' to start LOCATION body at index $index")
-                if (!expressions()) throw ParseException("Expected expressions in LOCATION block at index $index")
-                if (!match(TokenType.RBRACE)) throw ParseException("Expected '}' to close LOCATION block at index $index")
-                true
-            }
-            else -> {
-                index = start
-                false
-            }
+        val type = when {
+            match(TokenType.CITY) -> "CITY"
+            match(TokenType.ROAD) -> "ROAD"
+            match(TokenType.BUILDING) -> "BUILDING"
+            match(TokenType.LOCATION) -> "LOCATION"
+            else -> null
+        } ?: run {
+            index = start
+            return null
         }
-    }
 
-    private fun point(): Boolean {
-        if (!match(TokenType.LPAREN)) return false
-        if (!bitwise()) throw ParseException("Expected X coordinate in point at index $index")
-        if (!match(TokenType.COMMA)) throw ParseException("Expected ',' between point coordinates at index $index")
-        if (!bitwise()) throw ParseException("Expected Y coordinate in point at index $index")
-        if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' to close point at index $index")
-        return true
-    }
+        val name = consume(TokenType.STRING, "Expected name string after block type").text
 
-    private fun draw(): Boolean {
-        val start = index
-        return when {
-            match(TokenType.LINE) || match(TokenType.BOX) -> {
-                if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after shape at index $index")
-                if (!point()) throw ParseException("Expected first point after '(' at index $index")
-                if (!match(TokenType.COMMA)) throw ParseException("Expected ',' after first point at index $index")
-                if (!point()) throw ParseException("Expected second point after ',' at index $index")
-                if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after second point at index $index")
-                true
-            }
-            match(TokenType.CIRCLE) -> {
-                if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after shape at index $index")
-                if (!point()) throw ParseException("Expected first point after '(' at index $index")
-                if (!match(TokenType.COMMA)) throw ParseException("Expected ',' after first point at index $index")
-                if (!bitwise()) throw ParseException("Expected Bitwise after ',' at index $index")
-                if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after second point at index $index")
-                true
-            }
-            match(TokenType.BEND) -> {
-                if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after BEND at index $index")
-                if (!point()) throw ParseException("Expected first point in BEND at index $index")
-                if (!match(TokenType.COMMA)) throw ParseException("Expected ',' after first point in BEND at index $index")
-                if (!point()) throw ParseException("Expected second point in BEND at index $index")
-                if (!match(TokenType.COMMA)) throw ParseException("Expected ',' before radius in BEND at index $index")
-                if (!bitwise()) throw ParseException("Expected radius expression in BEND at index $index")
-                if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' after BEND parameters at index $index")
-                true
-            }
-            match(TokenType.POINT) -> {
-                if (!match(TokenType.LPAREN)) throw ParseException("Expected '(' after POINT at index $index")
-                if (!point()) throw ParseException("Expected coordinates in POINT at index $index")
-                if (!match(TokenType.RPAREN)) throw ParseException("Expected ')' to close POINT at index $index")
-                true
-            }
-            else -> {
-                index = start
-                false
-            }
+        var locationType: String? = null
+        var locationValue: Double? = null
+
+        if (type == "LOCATION") {
+            locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
+            locationValue = consume(TokenType.REAL, "Expected REAL after TYPE in location block").text.toDouble()
         }
+
+        consume(TokenType.LBRACE, "Expected '{' after block declaration")
+        val body = expressions()
+        consume(TokenType.RBRACE, "Expected '}' to close block")
+
+        return Statement.Block(type, name, body, locationType, locationValue)
     }
 
-    fun expressions(atLeastOne: Boolean = false): Boolean {
+
+    private fun draw(): Statement.DrawCommand? {
         val start = index
-        if (expr()) return expressionsPrime()
+        val shape = when {
+            match(TokenType.LINE) -> "LINE"
+            match(TokenType.BOX) -> "BOX"
+            match(TokenType.CIRCLE) -> "CIRCLE"
+            match(TokenType.BEND) -> "BEND"
+            match(TokenType.POINT) -> "POINT"
+            else -> null
+        } ?: run {
+            index = start
+            return null
+        }
+        consume(TokenType.LPAREN, "Expected '(' after $shape")
+        val args = parseDrawArguments()
+        consume(TokenType.RPAREN, "Expected ')' after arguments")
+        return Statement.DrawCommand(shape, args)
+    }
+
+    // Recursive parsing of argument list for draw commands
+    private fun parseDrawArguments(): List<ASTNode> {
+        val arg = point() ?: bitwise() ?: return emptyList()
+        val rest = parseDrawArgumentsRest()
+        return listOf(arg) + rest
+    }
+
+    private fun parseDrawArgumentsRest(): List<ASTNode> {
+        if (match(TokenType.COMMA)) {
+            val arg = point() ?: bitwise() ?: throw ParseException("Invalid argument in draw command")
+            return listOf(arg) + parseDrawArgumentsRest()
+        }
+        return emptyList()
+    }
+
+    private fun point(): Expr? {
+        val start = index
+        if (!match(TokenType.LPAREN)) return null
+        val x = bitwise() ?: throw ParseException("Expected x in point")
+        consume(TokenType.COMMA, "Expected ',' in point")
+        val y = bitwise() ?: throw ParseException("Expected y in point")
+        consume(TokenType.RPAREN, "Expected ')' after point")
+        return Expr.Binary(x, TokenType.COMMA, y)
+    }
+
+    private fun bitwise(): Expr? = bitwiseRest(additive())
+
+    private fun bitwiseRest(left: Expr?): Expr? {
+        if (left == null) return null
+        val start = index
+        if (match(TokenType.BWAND, TokenType.BWOR)) {
+            val op = tokens[index - 1].type
+            val right = additive() ?: throw ParseException("Expected RHS after bitwise operator")
+            return bitwiseRest(Expr.Binary(left, op, right))
+        }
         index = start
-        return !atLeastOne
+        return left
     }
 
-    private fun expressionsPrime(): Boolean {
+    private fun additive(): Expr? = additiveRest(multiplicative())
+
+    private fun additiveRest(left: Expr?): Expr? {
+        if (left == null) return null
         val start = index
-        return if (expr()) {
-            expressionsPrime()
-        } else {
-            true
+        if (match(TokenType.PLUS, TokenType.MINUS)) {
+            val op = tokens[index - 1].type
+            val right = multiplicative() ?: throw ParseException("Expected RHS after '+' or '-'")
+            return additiveRest(Expr.Binary(left, op, right))
         }
+        index = start
+        return left
     }
 
-    fun program(): Boolean {
-        return expressions(atLeastOne = true) && index == tokens.size - 1
+    private fun multiplicative(): Expr? = multiplicativeRest(unary())
+
+    private fun multiplicativeRest(left: Expr?): Expr? {
+        if (left == null) return null
+        val start = index
+        if (match(TokenType.MUL, TokenType.DIV)) {
+            val op = tokens[index - 1].type
+            val right = unary() ?: throw ParseException("Expected RHS after '*' or '/'")
+            return multiplicativeRest(Expr.Binary(left, op, right))
+        }
+        index = start
+        return left
+    }
+
+    private fun unary(): Expr? {
+        if (match(TokenType.PLUS, TokenType.MINUS)) {
+            val op = tokens[index - 1].type
+            val right = unary() ?: throw ParseException("Expected value after unary operator")
+            return Expr.Unary(op, right)
+        }
+        return primary()
+    }
+
+    private fun primary(): Expr? {
+        return when {
+            match(TokenType.INT) -> Expr.IntLiteral(tokens[index - 1].text.toInt())
+            match(TokenType.REAL) -> Expr.RealLiteral(tokens[index - 1].text.toDouble())
+            match(TokenType.VARIABLE) -> Expr.Variable(tokens[index - 1].text)
+            match(TokenType.LPAREN) -> {
+                val expr = bitwise() ?: throw ParseException("Expected expression")
+                consume(TokenType.RPAREN, "Expected ')' after expression")
+                expr
+            }
+
+            match(TokenType.GET_SPENT) -> {
+                val key = consume(TokenType.STRING, "Expected string after GET_SPENT").text
+                Expr.GetSpend(key)
+            }
+
+            else -> null
+        }
     }
 }
