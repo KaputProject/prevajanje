@@ -1,10 +1,18 @@
 import classes.*
 import java.math.BigDecimal
 
-class ParseException(message: String) : RuntimeException(message)
+class Block(
+    val type: String,
+    val name: String,
+    val body: List<Statement>,
+    val locationType: String? = null,
+    val locationValue: BigDecimal? = null,
+)
 
-class Evaluator(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
+class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
+
+    private var locations: MutableMap<String, Block> = mutableMapOf()
 
     private fun match(vararg expected: TokenType): Boolean {
         if (index < tokens.size && expected.contains(tokens[index].type)) {
@@ -23,6 +31,7 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
     fun program(): Program {
         val stmts = expressions()
         consume(TokenType.EOF, "Expected end of file, index ${index}")
+
         return Program(stmts)
     }
 
@@ -40,18 +49,20 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
     }
 
     private fun expr(): Statement? {
-        if (index + 1 < tokens.size && match(TokenType.LET)) {
-
-        }
         return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
     private fun assign(): Statement.Assign? {
-        val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
-        consume(TokenType.ASSIGN, "Expected '=' after variable")
-        val expr = bitwise() ?: throw ParseException("Expected expression after '='")
+        val start = index
+        if (match(TokenType.LET)) {
+            val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
+            consume(TokenType.ASSIGN, "Expected '=' after variable")
+            val expr = bitwise() ?: throw ParseException("Expected expression after '='")
 
-        return Statement.Assign(name, expr)
+            return Statement.Assign(name, expr)
+        }
+        index = start
+        return null
     }
 
     private fun setSpend(): Statement.SetSpend? {
@@ -251,60 +262,81 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
         return left
     }
 
-    private fun additive(): Expr? = additivePrime(multiplicative())
+    private fun additive(): BigDecimal {
+        val value = multiplicative()
 
-    private fun additivePrime(left: Expr?): Expr? {
-        if (left == null) return null
-        val start = index
-        if (match(TokenType.PLUS, TokenType.MINUS)) {
-            val op = tokens[index - 1].type
-            val right = multiplicative() ?: throw ParseException("Expected RHS after '+' or '-'")
-            return additivePrime(Expr.Binary(left, op, right))
-        }
-        index = start
-        return left
+        return additivePrime(value)
     }
 
-    private fun multiplicative(): Expr? = multiplicativePrime(unary())
+    private fun additivePrime(output: BigDecimal): BigDecimal {
+        if (match(TokenType.PLUS)) {
+            val value = multiplicative()
 
-    private fun multiplicativePrime(left: Expr?): Expr? {
-        if (left == null) return null
-        val start = index
-        if (match(TokenType.MUL, TokenType.DIV)) {
-            val op = tokens[index - 1].type
-            val right = unary() ?: throw ParseException("Expected RHS after '*' or '/'")
-            return multiplicativePrime(Expr.Binary(left, op, right))
+            return additivePrime(output + value)
+        } else if (match(TokenType.MINUS)) {
+            val value = multiplicative()
+
+            return additivePrime(output - value)
         }
-        index = start
-        return left
+
+        return output
     }
 
-    private fun unary(): Expr? {
-        if (match(TokenType.PLUS, TokenType.MINUS)) {
-            val op = tokens[index - 1].type
-            val right = unary() ?: throw ParseException("Expected value after unary operator")
-            return Expr.Unary(op, right)
+    private fun multiplicative(): BigDecimal {
+        val value = unary()
+
+        return multiplicativePrime(value)
+    }
+
+    private fun multiplicativePrime(output: BigDecimal): BigDecimal {
+        if (match(TokenType.MUL)) {
+            val value = unary()
+            return multiplicativePrime(output.multiply(value))
+        } else if (match(TokenType.DIV)) {
+            val value = unary()
+
+            if (value == BigDecimal.ZERO) throw ParseException("Division by zero")
+            return multiplicativePrime(output.divide(value))
+        }
+
+        return output
+    }
+
+    private fun unary(): BigDecimal {
+        if (match(TokenType.MINUS)) {
+            val value = primary()
+            return -value
         }
         return primary()
     }
 
-    private fun primary(): Expr? {
-        return when {
-            match(TokenType.INT) -> Expr.IntLiteral(tokens[index - 1].text.toInt())
-            match(TokenType.REAL) -> Expr.RealLiteral(tokens[index - 1].text.toDouble())
-            match(TokenType.VARIABLE) -> Expr.Variable(tokens[index - 1].text, variables[tokens[index - 1].text])
-            match(TokenType.LPAREN) -> {
-                val expr = bitwise() ?: throw ParseException("Expected expression")
-                consume(TokenType.RPAREN, "Expected ')' after expression")
-                expr
+    private fun primary(): BigDecimal {
+        if (match(TokenType.INT)) {
+            return BigDecimal.valueOf(tokens[index - 1].text.toLong())
+        } else if (match(TokenType.REAL)) {
+            return BigDecimal.valueOf(tokens[index - 1].text.toDouble())
+        } else if (match(TokenType.VARIABLE)) {
+            val variable = variables[tokens[index - 1].text]
+            if (variable == null) {
+                throw ParseException("Variable not found")
             }
 
-            match(TokenType.GET_SPENT) -> {
-                val key = consume(TokenType.STRING, "Expected string after GET_SPENT").text
-                Expr.GetSpend(key)
+            return variables[tokens[index - 1].text]!!
+        } else if (match(TokenType.LPAREN)) {
+            val expr = bitwise() ?: throw ParseException("Expected expression")
+            consume(TokenType.RPAREN, "Expected ')' after expression")
+
+            return expr
+        } else if (match(TokenType.GET_SPENT)) {
+            val key = consume(TokenType.STRING, "Expected string after GET_SPENT").text
+
+            if (locations[key]?.locationType != null) {
+                return locations[key]?.locationValue!!
             }
 
-            else -> null
+            throw ParseException("A location with the name of ${key} doesn't exist!")
+        } else {
+            throw ParseException("Failed in Primary / else")
         }
     }
 }

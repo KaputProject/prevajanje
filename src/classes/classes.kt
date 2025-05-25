@@ -14,6 +14,8 @@ sealed class Expr : ASTNode() {
     data class GetSpend(val key: String) : Expr()
 }
 
+data class Program(val body: List<Statement>) : ASTNode()
+
 sealed class Statement : ASTNode() {
     data class Assign(val name: String, val expr: Expr) : Statement()
     data class SetSpend(val key: String, val value: Expr) : Statement()
@@ -26,7 +28,7 @@ sealed class Statement : ASTNode() {
         val name: String,
         val body: List<Statement>,
         val locationType: String? = null,
-        val locationValue: Double? = null
+        val locationValue: Double? = null,
     ) : Statement()
     data class DrawCommand(val shape: String, val args: List<ASTNode>) : Statement()
 }

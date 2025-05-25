@@ -53,13 +53,17 @@ fun main() {
         setSpent "hmmm" 30
     """.trimIndent()
 
-    val lexer = Lexer(code4)
+    val lexer = Lexer(code1)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {
         println(index.toString() + " " + token)
         index++
     }
-    val parser = Evaluator(tokens)
-    println(parser.program())
+
+    val evaluator = Evaluator2(tokens, mutableMapOf())
+    val program = evaluator.program()
+    for (statement in program.body) {
+        println(statement)
+    }
 }
