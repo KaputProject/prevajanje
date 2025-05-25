@@ -23,7 +23,7 @@ enum class TokenType {
     LINE, BEND, BOX, CIRCLE, POINT,
 
     // Functions
-    FUN, TO, CONSOLE, CITY, ROAD, BUILDING, LOCATION,
+    FUN, CALL, TO, CONSOLE, CITY, ROAD, BUILDING, LOCATION,
 
     // Others
     VARIABLE, EOF, ERROR, TYPE
