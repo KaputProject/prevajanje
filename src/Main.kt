@@ -1,3 +1,5 @@
+import geojson.*
+
 fun main() {
     val code1 = """
     location "Mango" restaurant 0.0 {
@@ -66,26 +68,22 @@ fun main() {
         console 4
     """.trimIndent()
 
-    // TODO: Fix if some block is defined in another all the shapes added to the parent after are ignored, as currentBlock clears
     val code7 = """
-    location "Mango" restaurant 0.0 {
-        for (let x = 1 to 10 ) {
-            point (( 1 , x ))
-        }
+    location "Fast Food pri Stuku" restaurant 0.0 {
+        set_spent "Fast Food pri Stuku" 16.50
         
-        line ((1,2),(3,4))
-        box ((12,23),(34,45))
-        bend ((3,2),(3,4), (113 - 0.34))
-        circle ((1,0), 1.1111)
-        
-        let f = 10
-        if (f > 9) {
-            console f
-        }
+        point (( 15.62775921695112 , 46.5635219201632 ))
+        point (( 15.627698988270168 , 46.563436029888095 ))
+        point (( 15.627939920165602 , 46.56335575998327 ))
+        point (( 15.627998791971066 , 46.56344068333098 ))
+        point (( 15.62775921695112 , 46.5635219201632 ))
     }
-    line ((1,2),(3,4))
-    set_spent "Mango" 7
-    set_spent "Mango" get_spent "Mango" + 93
+    
+    building "Nakupovalni Center" {
+        
+    }
+    
+    
     """.trimIndent()
 
     val code8 = """
@@ -107,16 +105,20 @@ fun main() {
     }
 
     val evaluator = Evaluator2(tokens)
-    val blocks = evaluator.program()
+    val featList = evaluator.program().values.toList()
 
-    println("Parsed blocks:")
-    for ((key, block) in blocks) {
-        println("Name: ${block.name}, Type: ${block.type}")
-        for (value in block.body) {
-            println(value.toString())
-        }
-        if (block is Location) {
-            println("  Location type: ${block.locationType}, Value: ${block.locationValue}")
-        }
-    }
+    val geoJson = Features(featList).toGeoJson()
+    println(geoJson)
+
+//    println("Parsed blocks:")
+//    for ((key, block) in blocks) {
+//        println("Name: ${block.name}, Type: ${block.type}")
+//        for (value in block.body) {
+//            println(value.toString())
+//        }
+//        if (block is Location) {
+//            println("  Location type: ${block.locationType}, Value: ${block.locationValue}")
+//        }
+//        println(block.toGeoJson())
+//    }
 }

@@ -1,47 +1,6 @@
 import classes.*
+import geojson.*
 import java.math.BigDecimal
-
-sealed class Shape
-
-class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "( $x , $y )"
-    }
-}
-class Line(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Box(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2 , $factor)"
-    }
-}
-class Circle(var p1: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $factor)"
-    }
-}
-
-open class Block(
-    val type: String,
-    val name: String,
-    val body: MutableList<Shape> = mutableListOf(),
-)
-
-class Location(
-    type: String,
-    name: String,
-    body: MutableList<Shape>,
-    val locationType: String? = null,
-    var locationValue: BigDecimal? = null,
-) : Block(type, name, body)
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
