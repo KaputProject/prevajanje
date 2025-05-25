@@ -1,16 +1,28 @@
 import classes.*
 import java.math.BigDecimal
 
+sealed class Shape
+
+class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
+    override fun toString(): String {
+        return "( $x , $y )"
+    }
+}
+class Line(var p1: Point, var p2: Point) : Shape()
+class Box(var p1: Point, var p2: Point) : Shape()
+class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape()
+class Circle(var p1: Point, var factor: BigDecimal)
+
 open class Block(
     val type: String,
     val name: String,
-    val body: List<Statement> = listOf(),
+    val body: MutableList<Shape> = mutableListOf(),
 )
 
 class Location(
     type: String,
     name: String,
-    body: List<Statement>,
+    body: MutableList<Shape>,
     val locationType: String? = null,
     var locationValue: BigDecimal? = null,
 ) : Block(type, name, body)
@@ -61,8 +73,10 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             forLoop()
         } else if (match(TokenType.CITY) || match(TokenType.ROAD) || match(TokenType.BUILDING) || match(TokenType.LOCATION)) {
             block()
-        } else if (match(TokenType.SET_SPENT)){
+        } else if (match(TokenType.SET_SPENT)) {
             setSpent()
+        } else if (match(TokenType.LINE) || match(TokenType.BEND) || match(TokenType.BOX) || match(TokenType.CIRCLE) || match(TokenType.POINT)) {
+            draw(tokens[index-1])
         } else {
             return false
         }
@@ -259,7 +273,7 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
                 locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
                 locationValue = BigDecimal(consume(TokenType.REAL, "Expected REAL after TYPE in location block").text)
 
-                newBlock = Location(type, name, listOf(), locationType, locationValue)
+                newBlock = Location(type, name, mutableListOf(), locationType, locationValue)
             } else {
                 newBlock = Block(type, name)
             }
@@ -278,48 +292,37 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
     }
 
 
-//    private fun draw(): Statement.DrawCommand? {
-//        val start = index
-//        val shape = when {
-//            match(TokenType.LINE) -> "LINE"
-//            match(TokenType.BOX) -> "BOX"
-//            match(TokenType.CIRCLE) -> "CIRCLE"
-//            match(TokenType.BEND) -> "BEND"
-//            match(TokenType.POINT) -> "POINT"
-//            else -> null
-//        } ?: run {
-//            index = start
-//            return null
-//        }
-//        consume(TokenType.LPAREN, "Expected '(' after $shape")
-//        val args = parseDrawArguments()
-//        consume(TokenType.RPAREN, "Expected ')' after arguments")
-//        return Statement.DrawCommand(shape, args)
-//    }
+    private fun draw(token: Token) {
+        consume(TokenType.LPAREN, "Expected '(' after ${token.type}")
 
-//    private fun parseDrawArguments(): List<ASTNode> {
-//        val arg = point() ?: bitwise() ?: return emptyList()
-//        val rest = parseDrawArgumentsPrime()
-//        return listOf(arg) + rest
-//    }
+        val shape = when {
+            token.type == TokenType.POINT -> {
+                point()
+            }
+            else -> throw ParseException("Unexpected draw type: ${token.type}")
+        }
 
-//    private fun parseDrawArgumentsPrime(): List<ASTNode> {
-//        if (match(TokenType.COMMA)) {
-//            val arg = point() ?: bitwise() ?: throw ParseException("Invalid argument in draw command")
-//            return listOf(arg) + parseDrawArgumentsPrime()
-//        }
-//        return emptyList()
-//    }
+        consume(TokenType.RPAREN, "Expected ')' after draw arguments")
 
-//    private fun point(): Expr? {
-//        val start = index
-//        if (!match(TokenType.LPAREN)) return null
-//        val x = bitwise()
-//        consume(TokenType.COMMA, "Expected ',' in point")
-//        val y = bitwise()
-//        consume(TokenType.RPAREN, "Expected ')' after point")
-//        return Expr.Binary(x, TokenType.COMMA, y)
-//    }
+        if (currentBlock != null) {
+            blocks[currentBlock]?.body?.add(shape)
+        }
+    }
+
+    private fun point(): Point {
+        try {
+            if (!match(TokenType.LPAREN)) throw ParseException("Expecting ( at the start of point")
+
+            val x = bitwise()
+            consume(TokenType.COMMA, "Expected ',' in point")
+            val y = bitwise()
+            consume(TokenType.RPAREN, "Expected ')' after point")
+
+            return Point(x, y)
+        } catch (e: Exception) {
+            throw ParseException("Error in POINT: ${e.message}")
+        }
+    }
 
     private fun bitwise(): BigDecimal {
         val value = additive()

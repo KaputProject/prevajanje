@@ -1,0 +1,259 @@
+Primeri GeoJSON:
+
+Osnovna struktura:
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point" | "LineString" | "Polygon" | ...,
+        "coordinates": [...]
+      },
+      "properties": {
+        "name": "neko ime",
+        "drugo_polje": "..."
+      }
+    },
+    ...
+  ]
+}
+
+Point:
+
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [x, y]
+  },
+  "properties": {
+    "name": "point"
+  }
+}
+
+Line:
+
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [x1, y1],
+      [x2, y2]
+    ]
+  },
+  "properties": {
+    "name": "line"
+  }
+}
+
+Box:
+
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [x1, y1],
+      [x2, y1],
+      [x2, y2],
+      [x1, y2],
+      [x1, y1]   // Poligon mora biti zaprt
+    ]]
+  },
+  "properties": {
+    "name": "box"
+  }
+}
+
+Circle:
+
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [x1, y1],
+      [x2, y2],
+      ...
+    ]]
+  },
+  "properties": {
+    "name": "circle",
+    "radius": r
+  }
+}
+
+
+
+Nek dejanski primer:
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              15.64,
+              46.55
+            ],
+            [
+              15.645,
+              46.55
+            ],
+            [
+              15.645,
+              46.555
+            ],
+            [
+              15.64,
+              46.555
+            ],
+            [
+              15.64,
+              46.55
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "block": "city",
+        "name": "Maribor"
+      },
+      "id": 0
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              15.642,
+              46.551
+            ],
+            [
+              15.643,
+              46.551
+            ],
+            [
+              15.643,
+              46.552
+            ],
+            [
+              15.642,
+              46.552
+            ],
+            [
+              15.642,
+              46.551
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "block": "building",
+        "name": "Library"
+      },
+      "id": 1
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            15.641,
+            46.5505
+          ],
+          [
+            15.644,
+            46.5505
+          ]
+        ]
+      },
+      "properties": {
+        "block": "road",
+        "name": "Main Road"
+      },
+      "id": 2
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.643,
+          46.553
+        ]
+      },
+      "properties": {
+        "block": "location",
+        "name": "Cafe Center",
+        "type": "cafe"
+      },
+      "id": 3
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              15.6415,
+              46.5535
+            ],
+            [
+              15.6425,
+              46.5535
+            ],
+            [
+              15.6425,
+              46.5545
+            ],
+            [
+              15.6415,
+              46.5545
+            ],
+            [
+              15.6415,
+              46.5535
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "block": "location",
+        "name": "City Park",
+        "type": "park"
+      },
+      "id": 4
+    },
+    {
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [15.6442, 46.5510],
+      [15.6444, 46.5511],
+      [15.6445, 46.5513],
+      [15.6444, 46.5515],
+      [15.6442, 46.5516],
+      [15.6440, 46.5515],
+      [15.6439, 46.5513],
+      [15.6440, 46.5511],
+      [15.6442, 46.5510]
+    ]]
+  },
+  "properties": {
+    "name": "circle",
+    "radius": 50
+  }
+}
+  ]
+}

@@ -69,7 +69,7 @@ fun main() {
     val code7 = """
     location "Mango" restaurant 0.0 {
         for (let x = 1 to 10 ) {
-            console x
+            point (( 1 , x ))
         }
         
         let f = 10
@@ -94,7 +94,10 @@ fun main() {
 
     println("Parsed blocks:")
     for ((key, block) in blocks) {
-        println("Name: ${block.name}, Type: ${block.type}, Body size: ${block.body.size}")
+        println("Name: ${block.name}, Type: ${block.type}")
+        for (value in block.body) {
+            println(value.toString())
+        }
         if (block is Location) {
             println("  Location type: ${block.locationType}, Value: ${block.locationValue}")
         }
