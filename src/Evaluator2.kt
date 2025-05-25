@@ -36,26 +36,25 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
     }
 
     private fun expressions() {
-        expr()
-
-        return expressionsPrime()
-    }
-
-    private fun expressionsPrime() {
         if (index >= tokens.size || tokens[index].type == TokenType.EOF) return
-        expr()
-        return expressionsPrime()
+
+        if (expr()) {
+            expressions()
+        }
     }
 
-    private fun expr() {
+    private fun expr(): Boolean {
         if (match(TokenType.LET)) {
             assign()
         } else if (match(TokenType.CONSOLE)) {
             console()
+        } else if (match(TokenType.IF)) {
+            ifStmt()
+        } else {
+            return false
         }
-//        else if (match(TokenType.IF)) {
-//            ifStmt()
-//        }
+
+        return true
         //return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
@@ -92,38 +91,39 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun ifStmt() {
-//        consume(TokenType.LPAREN, "Expected '(' after IF")
-//
-//        try {
-//            val condition = comparison()
-//
-//            if (condition) {
-//                expressions()
-//            } else {
-//                while (index < tokens.size) {
-//                    if (tokens[index].type == TokenType.RBRACE) {
-//                        consume(TokenType.RBRACE, "Failed when attempting to skip THEN in IF on false condition")
-//                        break
-//                    }
-//                }
-//            }
-//        } catch (e: Exception) {
-//            throw ParseException("The condition inside IF has failed with message: ${e.message}")
-//        }
-//
-//        consume(TokenType.RPAREN, "Expected ')' after IF condition")
-//        consume(TokenType.LBRACE, "Expected '{' after IF")
-//
-//        val thenBranch = expressions()
-//        consume(TokenType.RBRACE, "Expected '}' after IF block")
-//        val elseBranch = if (match(TokenType.ELSE)) {
-//            consume(TokenType.LBRACE, "Expected '{' after ELSE")
-//            val elseStmts = expressions()
-//            consume(TokenType.RBRACE, "Expected '}' after ELSE block")
-//            elseStmts
-//        } else null
-//    }
+    private fun ifStmt() {
+        consume(TokenType.LPAREN, "Expected '(' after IF")
+
+        try {
+            val condition = comparison()
+
+            if (condition) {
+                expressions()
+            } else {
+                consume(TokenType.RPAREN, "Expected ')' after IF")
+                consume(TokenType.LBRACE, "Expected '{' after condition in IF")
+                while (index < tokens.size) {
+                    if (tokens[index].type == TokenType.RBRACE) {
+                        consume(TokenType.RBRACE, "Failed when attempting to skip THEN in IF on false condition")
+                        break
+                    }
+                    index++
+                }
+
+                if (match(TokenType.ELSE)) {
+                    elseStmt()
+                }
+            }
+        } catch (e: Exception) {
+            throw ParseException("IF has failed with message: ${e.message}")
+        }
+    }
+
+    private fun elseStmt() {
+        consume(TokenType.LBRACE, "Expected { after ELSE")
+        expressions()
+        consume(TokenType.RBRACE, "Expected } after expressions in ELSE")
+    }
 
     private fun comparison(): Boolean {
         val left = bitwise()

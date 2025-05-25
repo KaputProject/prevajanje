@@ -35,10 +35,12 @@ fun main() {
     """.trimIndent()
 
     val code3 = """
+        let f = 3
         if (f > 9) {
-            box ((0, 0), (1, 1))
-        } else {   
-            bend ((0, 0), (1, 1), 0.01)
+            console 1
+        } else {
+            console 3
+            console 2
         }
     """.trimIndent()
 
@@ -60,7 +62,7 @@ fun main() {
         console 4
     """.trimIndent()
 
-    val lexer = Lexer(code6)
+    val lexer = Lexer(code3)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {
