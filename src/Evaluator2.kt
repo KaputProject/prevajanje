@@ -174,6 +174,7 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
     private fun forLoop() {
         try {
             consume(TokenType.LPAREN, "Expected '(' after FOR")
+            consume(TokenType.LET, "Expected 'let' after (")
             val from = assign()
 
             consume(TokenType.TO, "Expected TO in FOR")

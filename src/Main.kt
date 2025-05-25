@@ -37,7 +37,12 @@ fun main() {
     val code3 = """
         let f = 10
         if (f > 9) {
-            console 1
+            for (let hmm = 1 to 4) {
+                console hmm
+                if (hmm > 2) {
+                    console hmm
+                }
+            }
         } else {
             console 2
         }
