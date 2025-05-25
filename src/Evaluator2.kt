@@ -236,29 +236,29 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun function(): Statement.Fun? {
-//        val start = index
-//        if (match(TokenType.FUN)) {
+//    private fun function() {
+//        try {
 //            val name = consume(TokenType.STRING, "Expected function name").text
 //            consume(TokenType.LPAREN, "Expected '(' after function name")
-//            val params = parseParameters()
+//            val params = parameters()
 //            consume(TokenType.RPAREN, "Expected ')' after parameters")
 //            consume(TokenType.LBRACE, "Expected '{' before function body")
+//
 //            val body = expressions()
+//
 //            consume(TokenType.RBRACE, "Expected '}' to close function")
-//            return Statement.Fun(name, params, body)
+//        } catch (e: Exception) {
+//            throw ParseException("Error in function: ${e.message}")
 //        }
-//        index = start
-//        return null
 //    }
-
-//    private fun parseParameters(): List<String> {
+//
+//    private fun parameters(): List<String> {
 //        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
-//        val rest = parseParametersRest()
+//        val rest = parametersPrime()
 //        return listOf(param) + rest
 //    }
 //
-//    private fun parseParametersRest(): List<String> {
+//    private fun parametersPrime(): List<String> {
 //        if (match(TokenType.COMMA)) {
 //            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
 //            return listOf(param) + parseParametersRest()
