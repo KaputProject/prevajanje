@@ -1,13 +1,14 @@
 package classes
 
 import TokenType
+import java.math.BigDecimal
 
 sealed class ASTNode
 
 sealed class Expr : ASTNode() {
     data class IntLiteral(val value: Int) : Expr()
     data class RealLiteral(val value: Double) : Expr()
-    data class Variable(val name: String) : Expr()
+    data class Variable(val name: String, val value: BigDecimal?) : Expr()
     data class Unary(val operator: TokenType, val expr: Expr) : Expr()
     data class Binary(val left: Expr, val operator: TokenType, val right: Expr) : Expr()
     data class GetSpend(val key: String) : Expr()

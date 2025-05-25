@@ -49,6 +49,7 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
             val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
             consume(TokenType.ASSIGN, "Expected '=' after variable")
             val expr = bitwise() ?: throw ParseException("Expected expression after '='")
+
             return Statement.Assign(name, expr)
         }
         index = start
@@ -99,10 +100,10 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
 
     private fun comparison(): Expr? {
         val left = bitwise() ?: return null
-        return comparisonRest(left)
+        return comparisonPrime(left)
     }
 
-    private fun comparisonRest(left: Expr): Expr {
+    private fun comparisonPrime(left: Expr): Expr {
         val start = index
         return when {
             match(TokenType.GT, TokenType.LT, TokenType.EQ, TokenType.NEQ) -> {
@@ -217,14 +218,14 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
     // Recursive parsing of argument list for draw commands
     private fun parseDrawArguments(): List<ASTNode> {
         val arg = point() ?: bitwise() ?: return emptyList()
-        val rest = parseDrawArgumentsRest()
+        val rest = parseDrawArgumentsPrime()
         return listOf(arg) + rest
     }
 
-    private fun parseDrawArgumentsRest(): List<ASTNode> {
+    private fun parseDrawArgumentsPrime(): List<ASTNode> {
         if (match(TokenType.COMMA)) {
             val arg = point() ?: bitwise() ?: throw ParseException("Invalid argument in draw command")
-            return listOf(arg) + parseDrawArgumentsRest()
+            return listOf(arg) + parseDrawArgumentsPrime()
         }
         return emptyList()
     }
@@ -239,43 +240,43 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
         return Expr.Binary(x, TokenType.COMMA, y)
     }
 
-    private fun bitwise(): Expr? = bitwiseRest(additive())
+    private fun bitwise(): Expr? = bitwisePrime(additive())
 
-    private fun bitwiseRest(left: Expr?): Expr? {
+    private fun bitwisePrime(left: Expr?): Expr? {
         if (left == null) return null
         val start = index
         if (match(TokenType.BWAND, TokenType.BWOR)) {
             val op = tokens[index - 1].type
             val right = additive() ?: throw ParseException("Expected RHS after bitwise operator")
-            return bitwiseRest(Expr.Binary(left, op, right))
+            return bitwisePrime(Expr.Binary(left, op, right))
         }
         index = start
         return left
     }
 
-    private fun additive(): Expr? = additiveRest(multiplicative())
+    private fun additive(): Expr? = additivePrime(multiplicative())
 
-    private fun additiveRest(left: Expr?): Expr? {
+    private fun additivePrime(left: Expr?): Expr? {
         if (left == null) return null
         val start = index
         if (match(TokenType.PLUS, TokenType.MINUS)) {
             val op = tokens[index - 1].type
             val right = multiplicative() ?: throw ParseException("Expected RHS after '+' or '-'")
-            return additiveRest(Expr.Binary(left, op, right))
+            return additivePrime(Expr.Binary(left, op, right))
         }
         index = start
         return left
     }
 
-    private fun multiplicative(): Expr? = multiplicativeRest(unary())
+    private fun multiplicative(): Expr? = multiplicativePrime(unary())
 
-    private fun multiplicativeRest(left: Expr?): Expr? {
+    private fun multiplicativePrime(left: Expr?): Expr? {
         if (left == null) return null
         val start = index
         if (match(TokenType.MUL, TokenType.DIV)) {
             val op = tokens[index - 1].type
             val right = unary() ?: throw ParseException("Expected RHS after '*' or '/'")
-            return multiplicativeRest(Expr.Binary(left, op, right))
+            return multiplicativePrime(Expr.Binary(left, op, right))
         }
         index = start
         return left
@@ -294,7 +295,7 @@ class Evaluator(private val tokens: List<Token>, private val variables: MutableM
         return when {
             match(TokenType.INT) -> Expr.IntLiteral(tokens[index - 1].text.toInt())
             match(TokenType.REAL) -> Expr.RealLiteral(tokens[index - 1].text.toDouble())
-            match(TokenType.VARIABLE) -> Expr.Variable(tokens[index - 1].text)
+            match(TokenType.VARIABLE) -> Expr.Variable(tokens[index - 1].text, variables[tokens[index - 1].text])
             match(TokenType.LPAREN) -> {
                 val expr = bitwise() ?: throw ParseException("Expected expression")
                 consume(TokenType.RPAREN, "Expected ')' after expression")
