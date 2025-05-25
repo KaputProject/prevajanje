@@ -66,17 +66,17 @@ fun main() {
         console 4
     """.trimIndent()
 
+    // TODO: Fix if some block is defined in another all the shapes added to the parent after are ignored, as currentBlock clears
     val code7 = """
     location "Mango" restaurant 0.0 {
         for (let x = 1 to 10 ) {
             point (( 1 , x ))
         }
         
-        road "Gosposvetska" {
-            line ((1,2),(3,4))
-        }
-        
         line ((1,2),(3,4))
+        box ((12,23),(34,45))
+        bend ((3,2),(3,4), (113 - 0.34))
+        circle ((1,0), 1.1111)
         
         let f = 10
         if (f > 9) {
@@ -92,12 +92,13 @@ fun main() {
     city "Maribor" {
         point ((1,2))
         road "Gosposvetska" {
-            line ((1,2),(3,4))
+            box ((1,2),(3,4))
+            box ((1,2),(3,4))
         }
     }
     """.trimIndent()
 
-    val lexer = Lexer(code8)
+    val lexer = Lexer(code7)
     val tokens = lexer.tokenize()
     var index = 0
     for (token in tokens) {

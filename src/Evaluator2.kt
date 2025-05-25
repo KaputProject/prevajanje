@@ -10,12 +10,24 @@ class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
 }
 class Line(var p1: Point, var p2: Point) : Shape() {
     override fun toString(): String {
-        return "( $p1 , $p2 )"
+        return "($p1 , $p2)"
     }
 }
-class Box(var p1: Point, var p2: Point) : Shape()
-class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape()
-class Circle(var p1: Point, var factor: BigDecimal)
+class Box(var p1: Point, var p2: Point) : Shape() {
+    override fun toString(): String {
+        return "($p1 , $p2)"
+    }
+}
+class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape() {
+    override fun toString(): String {
+        return "($p1 , $p2 , $factor)"
+    }
+}
+class Circle(var p1: Point, var factor: BigDecimal) : Shape() {
+    override fun toString(): String {
+        return "($p1 , $factor)"
+    }
+}
 
 open class Block(
     val type: String,
@@ -30,7 +42,6 @@ class Location(
     val locationType: String? = null,
     var locationValue: BigDecimal? = null,
 ) : Block(type, name, body)
-
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
@@ -308,6 +319,29 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
                 val p2 = point()
 
                 Line(p1,p2)
+            }
+            token.type == TokenType.BOX -> {
+                val p1 = point()
+                consume(TokenType.COMMA, "Expected ',' between points in  ${token.type}")
+                val p2 = point()
+
+                Box(p1,p2)
+            }
+            token.type == TokenType.BEND -> {
+                val p1 = point()
+                consume(TokenType.COMMA, "Expected ',' between points in  ${token.type}")
+                val p2 = point()
+                consume(TokenType.COMMA, "Expected ',' between points in  ${token.type}")
+                val factor = bitwise()
+
+                Bend(p1, p2, factor)
+            }
+            token.type == TokenType.CIRCLE -> {
+                val p1 = point()
+                consume(TokenType.COMMA, "Expected ',' between points in  ${token.type}")
+                val factor = bitwise()
+
+                Circle(p1, factor)
             }
             else -> throw ParseException("Unexpected draw type: ${token.type}")
         }
