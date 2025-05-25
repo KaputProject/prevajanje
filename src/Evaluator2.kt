@@ -11,8 +11,8 @@ class Block(
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
-
     private var locations: MutableMap<String, Block> = mutableMapOf()
+    private var currentBlock: String = ""
 
     private fun match(vararg expected: TokenType): Boolean {
         if (index < tokens.size && expected.contains(tokens[index].type)) {
@@ -28,238 +28,262 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         throw ParseException(message)
     }
 
-    fun program(): Program {
-        val stmts = expressions()
+    fun program(): MutableMap<String, Block> {
+        expressions()
         consume(TokenType.EOF, "Expected end of file, index ${index}")
 
-        return Program(stmts)
+        return locations
     }
 
-    private fun expressions(): List<Statement> {
-        val statement = expr() ?: throw ParseException("Expected at least one expression in expressions")
-        val rest = expressionsPrime()
+    private fun expressions() {
+        expr()
 
-        return listOf(statement) + rest
+        return expressionsPrime()
     }
 
-    private fun expressionsPrime(): List<Statement> {
-        val statement = expr() ?: return emptyList()
-
-        return listOf(statement) + expressionsPrime()
+    private fun expressionsPrime() {
+        if (index >= tokens.size || tokens[index].type == TokenType.EOF) return
+        expr()
+        return expressionsPrime()
     }
 
-    private fun expr(): Statement? {
-        return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
-    }
-
-    private fun assign(): Statement.Assign? {
-        val start = index
+    private fun expr() {
         if (match(TokenType.LET)) {
-            val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
-            consume(TokenType.ASSIGN, "Expected '=' after variable")
-            val expr = bitwise() ?: throw ParseException("Expected expression after '='")
-
-            return Statement.Assign(name, expr)
+            assign()
+        } else if (match(TokenType.CONSOLE)) {
+            console()
         }
-        index = start
-        return null
+//        else if (match(TokenType.IF)) {
+//            ifStmt()
+//        }
+        //return assign() ?: console() ?: ifStmt() ?: forLoop() ?: function() ?: setSpend() ?: draw() ?: block()
     }
 
-    private fun setSpend(): Statement.SetSpend? {
-        val start = index
-        if (match(TokenType.SET_SPENT)) {
-            val key = consume(TokenType.STRING, "Expected string after SET_SPENT").text
-            val expr = bitwise() ?: throw ParseException("Expected expression after string")
-            return Statement.SetSpend(key, expr)
+    private fun assign() {
+        val name = consume(TokenType.VARIABLE, "Expected variable after LET").text
+        consume(TokenType.ASSIGN, "Expected '=' after variable")
+
+        try {
+            val value = bitwise()
+            variables[name] = value
+        } catch (e: Exception) {
+            throw ParseException("The bitwise call inside assign has failed with message: ${e.message}")
         }
-        index = start
-        return null
     }
 
-    private fun console(): Statement.Console? {
-        val start = index
-        if (match(TokenType.CONSOLE)) {
-            val expr = bitwise() ?: throw ParseException("Expected expression after CONSOLE")
-            return Statement.Console(expr)
+//    private fun setSpend(): Statement.SetSpend? {
+//        val start = index
+//        if (match(TokenType.SET_SPENT)) {
+//            val key = consume(TokenType.STRING, "Expected string after SET_SPENT").text
+//            val expr = bitwise() ?: throw ParseException("Expected expression after string")
+//            return Statement.SetSpend(key, expr)
+//        }
+//        index = start
+//        return null
+//    }
+
+    private fun console() {
+        try {
+            val value = bitwise()
+
+            println("CONSOLE: $value")
+        } catch (e: Exception) {
+            throw ParseException("The bitwise call inside CONSOLE has failed with message: ${e.message}")
         }
-        index = start
-        return null
     }
 
-    private fun ifStmt(): Statement.If? {
-        val start = index
-        if (match(TokenType.IF)) {
-            consume(TokenType.LPAREN, "Expected '(' after IF")
-            val condition = comparison() ?: throw ParseException("Expected condition in IF")
-            consume(TokenType.RPAREN, "Expected ')' after IF condition")
-            consume(TokenType.LBRACE, "Expected '{' after IF")
-            val thenBranch = expressions()
-            consume(TokenType.RBRACE, "Expected '}' after IF block")
-            val elseBranch = if (match(TokenType.ELSE)) {
-                consume(TokenType.LBRACE, "Expected '{' after ELSE")
-                val elseStmts = expressions()
-                consume(TokenType.RBRACE, "Expected '}' after ELSE block")
-                elseStmts
-            } else null
-            return Statement.If(condition, thenBranch, elseBranch)
-        }
-        index = start
-        return null
-    }
+//    private fun ifStmt() {
+//        consume(TokenType.LPAREN, "Expected '(' after IF")
+//
+//        try {
+//            val condition = comparison()
+//
+//            if (condition) {
+//                expressions()
+//            } else {
+//                while (index < tokens.size) {
+//                    if (tokens[index].type == TokenType.RBRACE) {
+//                        consume(TokenType.RBRACE, "Failed when attempting to skip THEN in IF on false condition")
+//                        break
+//                    }
+//                }
+//            }
+//        } catch (e: Exception) {
+//            throw ParseException("The condition inside IF has failed with message: ${e.message}")
+//        }
+//
+//        consume(TokenType.RPAREN, "Expected ')' after IF condition")
+//        consume(TokenType.LBRACE, "Expected '{' after IF")
+//
+//        val thenBranch = expressions()
+//        consume(TokenType.RBRACE, "Expected '}' after IF block")
+//        val elseBranch = if (match(TokenType.ELSE)) {
+//            consume(TokenType.LBRACE, "Expected '{' after ELSE")
+//            val elseStmts = expressions()
+//            consume(TokenType.RBRACE, "Expected '}' after ELSE block")
+//            elseStmts
+//        } else null
+//    }
 
-    private fun comparison(): Expr? {
-        val left = bitwise() ?: return null
+    private fun comparison(): Boolean {
+        val left = bitwise()
+
         return comparisonPrime(left)
     }
 
-    private fun comparisonPrime(left: Expr): Expr {
-        val start = index
-        return when {
-            match(TokenType.GT, TokenType.LT, TokenType.EQ, TokenType.NEQ) -> {
-                val op = tokens[index - 1].type
-                val right = bitwise() ?: throw ParseException("Expected right-hand side of comparison")
-                Expr.Binary(left, op, right)
-            }
-            else -> {
-                index = start
-                left
-            }
+    private fun comparisonPrime(left: BigDecimal): Boolean {
+        if (match(TokenType.GT)) {
+            return left > bitwise()
+        } else if (match(TokenType.LT)) {
+            return left < bitwise()
+        } else if (match(TokenType.EQ)) {
+            return left == bitwise()
+        } else if (match(TokenType.NEQ)) {
+            return left != bitwise()
+        } else {
+            throw ParseException("Unexpected comparison operator")
         }
     }
 
-    private fun forLoop(): Statement.For? {
-        val start = index
-        if (match(TokenType.FOR)) {
-            consume(TokenType.LPAREN, "Expected '(' after FOR")
-            val init = assign() ?: throw ParseException("Expected assignment in FOR")
-            consume(TokenType.TO, "Expected TO in FOR")
-            val limit = bitwise() ?: throw ParseException("Expected limit expression in FOR")
-            consume(TokenType.RPAREN, "Expected ')' after FOR")
-            consume(TokenType.LBRACE, "Expected '{' to start FOR body")
-            val body = expressions()
-            consume(TokenType.RBRACE, "Expected '}' to close FOR")
-            return Statement.For(init, limit, body)
+//    private fun forLoop(): Statement.For? {
+//        val start = index
+//        if (match(TokenType.FOR)) {
+//            consume(TokenType.LPAREN, "Expected '(' after FOR")
+//            val init = assign() ?: throw ParseException("Expected assignment in FOR")
+//            consume(TokenType.TO, "Expected TO in FOR")
+//            val limit = bitwise() ?: throw ParseException("Expected limit expression in FOR")
+//            consume(TokenType.RPAREN, "Expected ')' after FOR")
+//            consume(TokenType.LBRACE, "Expected '{' to start FOR body")
+//            val body = expressions()
+//            consume(TokenType.RBRACE, "Expected '}' to close FOR")
+//            return Statement.For(init, limit, body)
+//        }
+//        index = start
+//        return null
+//    }
+
+//    private fun function(): Statement.Fun? {
+//        val start = index
+//        if (match(TokenType.FUN)) {
+//            val name = consume(TokenType.STRING, "Expected function name").text
+//            consume(TokenType.LPAREN, "Expected '(' after function name")
+//            val params = parseParameters()
+//            consume(TokenType.RPAREN, "Expected ')' after parameters")
+//            consume(TokenType.LBRACE, "Expected '{' before function body")
+//            val body = expressions()
+//            consume(TokenType.RBRACE, "Expected '}' to close function")
+//            return Statement.Fun(name, params, body)
+//        }
+//        index = start
+//        return null
+//    }
+
+//    private fun parseParameters(): List<String> {
+//        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
+//        val rest = parseParametersRest()
+//        return listOf(param) + rest
+//    }
+//
+//    private fun parseParametersRest(): List<String> {
+//        if (match(TokenType.COMMA)) {
+//            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
+//            return listOf(param) + parseParametersRest()
+//        }
+//        return emptyList()
+//    }
+
+//    private fun block(): Statement.Block? {
+//        val start = index
+//        val type = when {
+//            match(TokenType.CITY) -> "CITY"
+//            match(TokenType.ROAD) -> "ROAD"
+//            match(TokenType.BUILDING) -> "BUILDING"
+//            match(TokenType.LOCATION) -> "LOCATION"
+//            else -> null
+//        } ?: run {
+//            index = start
+//            return null
+//        }
+//
+//        val name = consume(TokenType.STRING, "Expected name string after block type").text
+//
+//        var locationType: String? = null
+//        var locationValue: Double? = null
+//
+//        if (type == "LOCATION") {
+//            locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
+//            locationValue = consume(TokenType.REAL, "Expected REAL after TYPE in location block").text.toDouble()
+//        }
+//
+//        consume(TokenType.LBRACE, "Expected '{' after block declaration")
+//        val body = expressions()
+//        consume(TokenType.RBRACE, "Expected '}' to close block")
+//
+//        return Statement.Block(type, name, body, locationType, locationValue)
+//    }
+
+
+//    private fun draw(): Statement.DrawCommand? {
+//        val start = index
+//        val shape = when {
+//            match(TokenType.LINE) -> "LINE"
+//            match(TokenType.BOX) -> "BOX"
+//            match(TokenType.CIRCLE) -> "CIRCLE"
+//            match(TokenType.BEND) -> "BEND"
+//            match(TokenType.POINT) -> "POINT"
+//            else -> null
+//        } ?: run {
+//            index = start
+//            return null
+//        }
+//        consume(TokenType.LPAREN, "Expected '(' after $shape")
+//        val args = parseDrawArguments()
+//        consume(TokenType.RPAREN, "Expected ')' after arguments")
+//        return Statement.DrawCommand(shape, args)
+//    }
+
+//    private fun parseDrawArguments(): List<ASTNode> {
+//        val arg = point() ?: bitwise() ?: return emptyList()
+//        val rest = parseDrawArgumentsPrime()
+//        return listOf(arg) + rest
+//    }
+
+//    private fun parseDrawArgumentsPrime(): List<ASTNode> {
+//        if (match(TokenType.COMMA)) {
+//            val arg = point() ?: bitwise() ?: throw ParseException("Invalid argument in draw command")
+//            return listOf(arg) + parseDrawArgumentsPrime()
+//        }
+//        return emptyList()
+//    }
+
+//    private fun point(): Expr? {
+//        val start = index
+//        if (!match(TokenType.LPAREN)) return null
+//        val x = bitwise()
+//        consume(TokenType.COMMA, "Expected ',' in point")
+//        val y = bitwise()
+//        consume(TokenType.RPAREN, "Expected ')' after point")
+//        return Expr.Binary(x, TokenType.COMMA, y)
+//    }
+
+    private fun bitwise(): BigDecimal {
+        val value = additive()
+
+        return bitwisePrime(value)
+    }
+
+    private fun bitwisePrime(output: BigDecimal): BigDecimal {
+        if (match(TokenType.BWAND)) {
+            val value = additive()
+
+            return bitwisePrime((output.toBigInteger().and(value.toBigInteger())).toBigDecimal())
+        } else if (match(TokenType.BWOR)) {
+            val value = additive()
+
+            return bitwisePrime((output.toBigInteger().or(value.toBigInteger())).toBigDecimal())
         }
-        index = start
-        return null
-    }
 
-    private fun function(): Statement.Fun? {
-        val start = index
-        if (match(TokenType.FUN)) {
-            val name = consume(TokenType.STRING, "Expected function name").text
-            consume(TokenType.LPAREN, "Expected '(' after function name")
-            val params = parseParameters()
-            consume(TokenType.RPAREN, "Expected ')' after parameters")
-            consume(TokenType.LBRACE, "Expected '{' before function body")
-            val body = expressions()
-            consume(TokenType.RBRACE, "Expected '}' to close function")
-            return Statement.Fun(name, params, body)
-        }
-        index = start
-        return null
-    }
-
-    private fun parseParameters(): List<String> {
-        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
-        val rest = parseParametersRest()
-        return listOf(param) + rest
-    }
-
-    private fun parseParametersRest(): List<String> {
-        if (match(TokenType.COMMA)) {
-            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
-            return listOf(param) + parseParametersRest()
-        }
-        return emptyList()
-    }
-
-    private fun block(): Statement.Block? {
-        val start = index
-        val type = when {
-            match(TokenType.CITY) -> "CITY"
-            match(TokenType.ROAD) -> "ROAD"
-            match(TokenType.BUILDING) -> "BUILDING"
-            match(TokenType.LOCATION) -> "LOCATION"
-            else -> null
-        } ?: run {
-            index = start
-            return null
-        }
-
-        val name = consume(TokenType.STRING, "Expected name string after block type").text
-
-        var locationType: String? = null
-        var locationValue: Double? = null
-
-        if (type == "LOCATION") {
-            locationType = consume(TokenType.TYPE, "Expected TYPE after location name").text
-            locationValue = consume(TokenType.REAL, "Expected REAL after TYPE in location block").text.toDouble()
-        }
-
-        consume(TokenType.LBRACE, "Expected '{' after block declaration")
-        val body = expressions()
-        consume(TokenType.RBRACE, "Expected '}' to close block")
-
-        return Statement.Block(type, name, body, locationType, locationValue)
-    }
-
-
-    private fun draw(): Statement.DrawCommand? {
-        val start = index
-        val shape = when {
-            match(TokenType.LINE) -> "LINE"
-            match(TokenType.BOX) -> "BOX"
-            match(TokenType.CIRCLE) -> "CIRCLE"
-            match(TokenType.BEND) -> "BEND"
-            match(TokenType.POINT) -> "POINT"
-            else -> null
-        } ?: run {
-            index = start
-            return null
-        }
-        consume(TokenType.LPAREN, "Expected '(' after $shape")
-        val args = parseDrawArguments()
-        consume(TokenType.RPAREN, "Expected ')' after arguments")
-        return Statement.DrawCommand(shape, args)
-    }
-
-    private fun parseDrawArguments(): List<ASTNode> {
-        val arg = point() ?: bitwise() ?: return emptyList()
-        val rest = parseDrawArgumentsPrime()
-        return listOf(arg) + rest
-    }
-
-    private fun parseDrawArgumentsPrime(): List<ASTNode> {
-        if (match(TokenType.COMMA)) {
-            val arg = point() ?: bitwise() ?: throw ParseException("Invalid argument in draw command")
-            return listOf(arg) + parseDrawArgumentsPrime()
-        }
-        return emptyList()
-    }
-
-    private fun point(): Expr? {
-        val start = index
-        if (!match(TokenType.LPAREN)) return null
-        val x = bitwise() ?: throw ParseException("Expected x in point")
-        consume(TokenType.COMMA, "Expected ',' in point")
-        val y = bitwise() ?: throw ParseException("Expected y in point")
-        consume(TokenType.RPAREN, "Expected ')' after point")
-        return Expr.Binary(x, TokenType.COMMA, y)
-    }
-
-    private fun bitwise(): Expr? = bitwisePrime(additive())
-
-    private fun bitwisePrime(left: Expr?): Expr? {
-        if (left == null) return null
-        val start = index
-        if (match(TokenType.BWAND, TokenType.BWOR)) {
-            val op = tokens[index - 1].type
-            val right = additive() ?: throw ParseException("Expected RHS after bitwise operator")
-            return bitwisePrime(Expr.Binary(left, op, right))
-        }
-        index = start
-        return left
+        return output
     }
 
     private fun additive(): BigDecimal {
@@ -323,7 +347,7 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
 
             return variables[tokens[index - 1].text]!!
         } else if (match(TokenType.LPAREN)) {
-            val expr = bitwise() ?: throw ParseException("Expected expression")
+            val expr = bitwise()
             consume(TokenType.RPAREN, "Expected ')' after expression")
 
             return expr
