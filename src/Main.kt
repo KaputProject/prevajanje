@@ -259,8 +259,33 @@ fun main() {
         }
     """.trimIndent()
 
-    val lexer = Lexer(code9)
-    val tokens = lexer.tokenize()
+    val code11 = """
+        let a = 1
+        let b = 2
+        fun "hmmm"(a, b) {
+            console a
+            console (b + a)
+        }
+        
+        console b
+    """.trimIndent()
+
+    val lexer = Lexer(code11)
+    val tokens = lexer.tokenize().toMutableList()
+
+    // Demonstracija za code11
+    tokens.removeLast()
+    tokens += Token(TokenType.CALL, "call", 0, 0)
+    tokens += Token(TokenType.STRING, "hmmm", 0, 0)
+    tokens += Token(TokenType.LPAREN, "(", 0, 0)
+    tokens += Token(TokenType.VARIABLE, "a", 0, 0)
+    tokens += Token(TokenType.COMMA, ",", 0, 0)
+    tokens += Token(TokenType.VARIABLE, "b", 0, 0)
+    tokens += Token(TokenType.RPAREN, ")", 0, 0)
+    tokens += Token(TokenType.CONSOLE, "console", 0, 0)
+    tokens += Token(TokenType.VARIABLE, "a", 0, 0)
+    tokens += Token(TokenType.EOF, "", 0, 0)
+
     var index = 0
     for (token in tokens) {
         println(index.toString() + " " + token)
