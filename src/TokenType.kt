@@ -1,11 +1,9 @@
 enum class TokenType {
     // Keywords
-    LET, IF, ELSE, FOR, IN,
-    TRANSACTION, ACCOUNT, LINK, SET, SHOW, ALERT, HIGHLIGHT, NEIGH,
-    FST, SND,
+    LET, IF, ELSE, FOR,
 
     // Literals
-    INT, REAL, STRING, DATE, NIL,
+    INT, REAL, STRING,
 
     // Symbols
     LBRACE, RBRACE, LPAREN, RPAREN,

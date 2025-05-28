@@ -8,18 +8,6 @@ class Lexer(private val input: String) {
         "if" to TokenType.IF,
         "else" to TokenType.ELSE,
         "for" to TokenType.FOR,
-        "in" to TokenType.IN,
-        "transaction" to TokenType.TRANSACTION,
-        "account" to TokenType.ACCOUNT,
-        "link" to TokenType.LINK,
-        "set" to TokenType.SET,
-        "show" to TokenType.SHOW,
-        "alert" to TokenType.ALERT,
-        "highlight" to TokenType.HIGHLIGHT,
-        "neigh" to TokenType.NEIGH,
-        "fst" to TokenType.FST,
-        "snd" to TokenType.SND,
-        "nil" to TokenType.NIL,
         "bwand" to TokenType.BWAND,
         "bwor" to TokenType.BWOR,
         "get_spent" to TokenType.GET_SPENT,
@@ -63,8 +51,7 @@ class Lexer(private val input: String) {
         return tokens
     }
 
-    private fun peek(offset: Int = 0): Char =
-        if (pos + offset < input.length) input[pos + offset] else '\u0000'
+    private fun peek(): Char = if (pos < input.length) input[pos] else 0.toChar()
 
     private fun advance(): Char {
         val ch = peek()
@@ -187,7 +174,8 @@ class Lexer(private val input: String) {
             }
 
             val cat = categorize(ch)
-            val next = dfaTable[state]?.get(cat) ?: break
+            val row = dfaTable[state] ?: break
+            val next = row[cat] ?: break
             sb.append(ch)
             state = next
             currentPos++
@@ -197,7 +185,10 @@ class Lexer(private val input: String) {
 
         val text = sb.toString()
 
-        val type = acceptingStates[state] ?: return Token(TokenType.ERROR, text, startLine, startCol)
+        val type = acceptingStates[state]
+        if (type == null) {
+            return Token(TokenType.ERROR, text, startLine, startCol)
+        }
 
         val finalType = when (type) {
             TokenType.VARIABLE -> {
@@ -210,13 +201,11 @@ class Lexer(private val input: String) {
                     TokenType.VARIABLE
                 }
             }
-            TokenType.STRING -> TokenType.STRING
             else -> type
         }
 
         val value = when (finalType) {
             TokenType.STRING -> text.drop(1).dropLast(1)
-            TokenType.DATE -> text.drop(1).dropLast(1)
             else -> text
         }
 
