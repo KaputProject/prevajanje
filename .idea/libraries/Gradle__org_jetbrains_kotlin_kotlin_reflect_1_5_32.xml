@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.jetbrains.kotlin:kotlin-reflect:1.5.32" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.jetbrains.kotlin" artifactId="kotlin-reflect" version="1.5.32" baseVersion="1.5.32" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.32/fb7f979b963e5ba051c6753fbbe80a1b6c6f745/kotlin-reflect-1.5.32.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.32/e49cc86f69a7aa7c2f0e6dae396c9cd35a0ad7a4/kotlin-reflect-1.5.32-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

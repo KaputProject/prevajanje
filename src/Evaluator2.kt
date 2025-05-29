@@ -1,52 +1,23 @@
 import classes.*
+import geojson.*
 import java.math.BigDecimal
 
-sealed class Shape
+class ParseException(message: String) : RuntimeException(message)
 
-class Point(var x: BigDecimal, var y: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "( $x , $y )"
-    }
-}
-class Line(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Box(var p1: Point, var p2: Point) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2)"
-    }
-}
-class Bend(var p1: Point, var p2: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $p2 , $factor)"
-    }
-}
-class Circle(var p1: Point, var factor: BigDecimal) : Shape() {
-    override fun toString(): String {
-        return "($p1 , $factor)"
-    }
-}
-
-open class Block(
-    val type: String,
-    val name: String,
-    val body: MutableList<Shape> = mutableListOf(),
+data class Function(
+    var name: String? = null,
+    var start: Int? = null,
+    var end: Int? = null,
+    var params: List<String> = emptyList(),
 )
-
-class Location(
-    type: String,
-    name: String,
-    body: MutableList<Shape>,
-    val locationType: String? = null,
-    var locationValue: BigDecimal? = null,
-) : Block(type, name, body)
 
 class Evaluator2(private val tokens: List<Token>, private val variables: MutableMap<String, BigDecimal> = mutableMapOf()) {
     private var index = 0
     private var blocks: MutableMap<String, Block> = mutableMapOf()
     private var currentBlock: String? = null
+    private var functions: MutableMap<String, Function> = mutableMapOf()
+    private var returnIndex = 0
+    private var breakIndex: Int? = null
 
     private fun match(vararg expected: TokenType): Boolean {
         if (index < tokens.size && expected.contains(tokens[index].type)) {
@@ -72,6 +43,10 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
     private fun expressions() {
         if (index >= tokens.size || tokens[index].type == TokenType.EOF) return
 
+        if (breakIndex != null && index == breakIndex) {
+            return
+        }
+
         if (expr()) {
             expressions()
         }
@@ -91,7 +66,11 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         } else if (match(TokenType.SET_SPENT)) {
             setSpent()
         } else if (match(TokenType.LINE) || match(TokenType.BEND) || match(TokenType.BOX) || match(TokenType.CIRCLE) || match(TokenType.POINT)) {
-            draw(tokens[index-1])
+            draw(tokens[index - 1])
+        } else if (match(TokenType.CALL)) {
+            call()
+        } else if (match(TokenType.FUN)) {
+            function()
         } else {
             return false
         }
@@ -236,35 +215,71 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
         }
     }
 
-//    private fun function() {
-//        try {
-//            val name = consume(TokenType.STRING, "Expected function name").text
-//            consume(TokenType.LPAREN, "Expected '(' after function name")
-//            val params = parameters()
-//            consume(TokenType.RPAREN, "Expected ')' after parameters")
-//            consume(TokenType.LBRACE, "Expected '{' before function body")
-//
-//            val body = expressions()
-//
-//            consume(TokenType.RBRACE, "Expected '}' to close function")
-//        } catch (e: Exception) {
-//            throw ParseException("Error in function: ${e.message}")
-//        }
-//    }
-//
-//    private fun parameters(): List<String> {
-//        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
-//        val rest = parametersPrime()
-//        return listOf(param) + rest
-//    }
-//
-//    private fun parametersPrime(): List<String> {
-//        if (match(TokenType.COMMA)) {
-//            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
-//            return listOf(param) + parseParametersRest()
-//        }
-//        return emptyList()
-//    }
+    private fun function() {
+        try {
+            val newFun: Function = Function()
+            val name = consume(TokenType.STRING, "Expected function name").text
+            newFun.name = name
+
+            consume(TokenType.LPAREN, "Expected '(' after function name")
+
+            newFun.params = parameters()
+
+            consume(TokenType.RPAREN, "Expected ')' after parameters")
+            consume(TokenType.LBRACE, "Expected '{' before function body")
+
+            newFun.start = this.index
+
+            skip()
+
+            newFun.end = this.index - 2
+
+            functions[name] = newFun
+        } catch (e: Exception) {
+            throw ParseException("Error in function: ${e.message}")
+        }
+    }
+
+    private fun parameters(): List<String> {
+        if (!match(TokenType.VARIABLE)) {
+            return emptyList()
+        }
+
+        index -= 1
+        val param = consume(TokenType.VARIABLE, "Expected parameter name").text
+        val rest = parametersPrime()
+        return listOf(param) + rest
+    }
+
+    private fun parametersPrime(): List<String> {
+        if (match(TokenType.COMMA)) {
+            val param = consume(TokenType.VARIABLE, "Expected parameter name after ','").text
+            return listOf(param) + parametersPrime()
+        }
+        return emptyList()
+    }
+
+    private fun call() {
+        val function = functions[consume(TokenType.STRING, "Expected function index").text] ?: throw ParseException("Function not found")
+
+        consume(TokenType.LPAREN, "Expected '(' after function name")
+        val passedParams = parameters()
+        consume(TokenType.RPAREN, "Expected ')' after parameters")
+
+        if (passedParams.toSet() != function.params.toSet()) {
+            throw ParseException("Function '${function.name}' called with incorrect parameters.")
+        }
+
+        returnIndex = this.index
+
+        this.index = function.start!!
+        this.breakIndex = function.end!!
+
+        expressions()
+
+        this.breakIndex = null
+        this.index = returnIndex
+    }
 
     private fun block() {
         try {
@@ -304,7 +319,6 @@ class Evaluator2(private val tokens: List<Token>, private val variables: Mutable
             throw ParseException("Error in BLOCK: ${e.message}")
         }
     }
-
 
     private fun draw(token: Token) {
         consume(TokenType.LPAREN, "Expected '(' after ${token.type}")

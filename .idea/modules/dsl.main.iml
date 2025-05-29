@@ -2,7 +2,7 @@
 <module external.linked.project.id="dsl:main" external.linked.project.path="$MODULE_DIR$/../../dsl" external.root.project.path="$MODULE_DIR$/../../dsl" external.system.id="GRADLE" external.system.module.group="org.example" external.system.module.type="sourceSet" external.system.module.version="1.0-SNAPSHOT" type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet external-system-id="GRADLE" type="kotlin-language" name="Kotlin">
-      <configuration version="5" platform="JVM 21" allPlatforms="JVM [21]" useProjectSettings="false" pureKotlinSourceFolders="C:\Users\lukak\Documents\GitHub\prevajanje\dsl\src\main\kotlin;C:\Users\lukak\Documents\GitHub\prevajanje\dsl\src\test\kotlin">
+      <configuration version="5" platform="JVM 21" allPlatforms="JVM [21]" useProjectSettings="false" pureKotlinSourceFolders="C:\Users\kuderl\Documents\GitHub\prevajanje\dsl\src\test\kotlin;C:\Users\kuderl\Documents\GitHub\prevajanje\dsl\src\main\kotlin">
         <compilerSettings />
         <compilerArguments>
           <flagArguments>
@@ -40,9 +40,15 @@
       <sourceFolder url="file://$MODULE_DIR$/../../dsl/src/main/kotlin" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../../dsl/src/main/resources" type="java-resource" />
     </content>
-    <orderEntry type="jdk" jdkName="corretto-21" jdkType="JavaSDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.15.0" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.module:jackson-module-kotlin:2.15.0" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:2.1.10" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.15.0" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.15.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-reflect:1.5.32" level="project" />
     <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0" level="project" />
+    <orderEntry type="library" name="Gradle: ch.randelshofer:fastdoubleparser:0.8.0" level="project" />
   </component>
 </module>
