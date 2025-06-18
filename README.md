@@ -1,1 +1,1 @@
-# prevajanje
+https://github.com/KaputProject/prevajanje/wiki
